@@ -10,9 +10,49 @@
 	<name>vraptor-jpa</name>
 	<url>http://vraptor.caelum.com.br</url>
 
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
+
+	<developers>
+		<developer>
+			<id>lucascs</id>
+			<name>Lucas Cavalcanti</name>
+			<email>lucasmrtuner@gmail.com</email>
+			<organization>Caelum</organization>
+			<organizationUrl>http://www.caelum.com.br</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+			<timezone>-3</timezone>
+		</developer>
+		<developer>
+			<id>peas</id>
+			<name>Paulo Silveira</name>
+			<email>paulo.silveira@caelum.com.br</email>
+			<organization>Caelum</organization>
+			<organizationUrl>http://www.caelum.com.br</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+			<timezone>-3</timezone>
+		</developer>
+		<developer>
+			<id>garcia-jj</id>
+			<name>Otávio Garcia</name>
+			<email>otavio@otavio.com.br</email>
+			<roles>
+				<role>developer</role>
+			</roles>
+			<timezone>-3</timezone>
+		</developer>
+	</developers>
 
 	<dependencies>
 		<dependency>
@@ -24,7 +64,7 @@
 		<dependency>
 			<groupId>br.com.caelum</groupId>
 			<artifactId>vraptor</artifactId>
-			<version>3.5.0-SNAPSHOT</version>
+			<version>3.5.0</version>
 			<scope>compile</scope>
 		</dependency>
 
