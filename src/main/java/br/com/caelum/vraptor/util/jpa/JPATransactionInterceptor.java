@@ -45,19 +45,15 @@ public class JPATransactionInterceptor implements Interceptor {
 		this.validator = validator;
 	}
 
-    //TODO I think that transaction null check is unnecessary, since we never get null transation (garcia-jj)
 	public void intercept(InterceptorStack stack, ResourceMethod method, Object instance) {
 		EntityTransaction transaction = null;
 		try {
-			transaction = manager.getTransaction();
-			
-			if (transaction != null) {
-			    transaction.begin();
-			}
+		    transaction = manager.getTransaction();
+		    transaction.begin();
 			
 			stack.next(method, instance);
 			
-			if (transaction != null && !validator.hasErrors()) {
+			if (!validator.hasErrors() && transaction.isActive()) {
 				transaction.commit();
 			}
 		} finally {
