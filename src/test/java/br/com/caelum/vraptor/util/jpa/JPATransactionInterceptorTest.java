@@ -38,7 +38,7 @@ public class JPATransactionInterceptorTest {
         JPATransactionInterceptor interceptor = new JPATransactionInterceptor(entityManager, validator);
 
         when(entityManager.getTransaction()).thenReturn(transaction);
-        when(transaction.isActive()).thenReturn(false);
+        when(transaction.isActive()).thenReturn(true);
 
         interceptor.intercept(stack, method, instance);
 
@@ -99,18 +99,6 @@ public class JPATransactionInterceptorTest {
         verify(transaction, never()).rollback();
     }
 
-    @Test
-    public void doNothingIfHasNoActiveTransationAsNull() {
-        JPATransactionInterceptor interceptor = new JPATransactionInterceptor(entityManager, validator);
-
-        when(entityManager.getTransaction()).thenReturn(null);
-        when(validator.hasErrors()).thenReturn(false);
-
-        interceptor.intercept(stack, method, instance);
-
-        verify(transaction, never()).rollback();
-    }
-    
     @Test
     public void shouldAcceptAllRequests() {
         assertTrue(new JPATransactionInterceptor(null, null).accepts(null));
