@@ -4,16 +4,15 @@ A VRaptor JPA plugin.
 
 # installing
 
-Copy the jar file to your app or use:
+[Copy the jar file](http://repo1.maven.org/maven2/br/com/caelum/vraptor/vraptor-jpa/1.0.0/vraptor-jpa-1.0.0.jar) to your app or use:
 
 		<dependency>
 			<groupId>br.com.caelum.vraptor</groupId>
 			<artifactId>vraptor-jpa</artifactId>
 			<version>1.0.0</version>
-			<scope>compile</scope>
 		</dependency>
 
-This plugin don't delivery any JPA Provider. You need to add your prefered provider.
+This plugin doesn't include any JPA Provider. You need to add your prefered provider.
 
 # help
 
