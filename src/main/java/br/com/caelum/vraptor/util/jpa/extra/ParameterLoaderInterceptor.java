@@ -15,8 +15,8 @@
  */
 package br.com.caelum.vraptor.util.jpa.extra;
 
-import static br.com.caelum.vraptor.util.collections.Filters.hasAnnotation;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Iterables.isEmpty;
 import static java.util.Arrays.asList;
@@ -44,6 +44,7 @@ import br.com.caelum.vraptor.interceptor.ParametersInstantiatorInterceptor;
 import br.com.caelum.vraptor.resource.ResourceMethod;
 import br.com.caelum.vraptor.view.FlashScope;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
@@ -117,7 +118,7 @@ public class ParameterLoaderInterceptor implements Interceptor {
         EntityType<T> entity = em.getMetamodel().entity(type);
         
         Type<?> idType = entity.getIdType();
-	    checkArgument(idType != null, "Entity " + type.getSimpleName() + " must have an id property for @Load.");
+	    checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
 	    
         SingularAttribute idProperty = entity.getDeclaredId(idType.getJavaType());
         String parameter = request.getParameter(name + "." + idProperty.getName());
@@ -126,8 +127,7 @@ public class ParameterLoaderInterceptor implements Interceptor {
         }
 	    
         Converter<?> converter = converters.to(idType.getJavaType());
-        checkArgument(converter != null, "Entity " + type.getSimpleName() + " id type " + idType
-                + " must have a converter");
+        checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idType);
 
         Serializable id = (Serializable) converter.convert(parameter, type, localization.getBundle());
         return em.find(type, id);
@@ -135,5 +135,13 @@ public class ParameterLoaderInterceptor implements Interceptor {
 
     private boolean hasLoadAnnotation(Annotation[] annotation) {
         return !isEmpty(Iterables.filter(asList(annotation), Load.class));
+    }
+
+    public static Predicate<Annotation[]> hasAnnotation(final Class<?> annotation) {
+        return new Predicate<Annotation[]>() {
+            public boolean apply(Annotation[] param) {
+                return any(asList(param), instanceOf(annotation));
+            }
+        };
     }
 }
