@@ -16,41 +16,30 @@
  */
 package br.com.caelum.vraptor.util.jpa;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Disposes;
+import javax.enterprise.inject.Produces;
+import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
-import br.com.caelum.vraptor.ioc.ApplicationScoped;
-import br.com.caelum.vraptor.ioc.Component;
-import br.com.caelum.vraptor.ioc.ComponentFactory;
-
 /**
- * An example of how to create EntityManagerFactory's for your components
+ * An {@link EntityManager} producer, that creates an instance for each request.
+ * 
  * @author Lucas Cavalcanti
- *
+ * @author Otávio Garcia
  */
-@Component
-@ApplicationScoped
-public class EntityManagerFactoryCreator implements ComponentFactory<EntityManagerFactory>{
+public class EntityManagerFactoryCreator {
 
-	private EntityManagerFactory factory;
-
-	@PostConstruct
-	public void create() {
-		factory = getEntityManagerFactory();
+	@ApplicationScoped
+	@Produces
+	public EntityManagerFactory getEntityManagerFactory() {
+		return Persistence.createEntityManagerFactory("default");
 	}
 
-	public EntityManagerFactory getInstance() {
-		return factory;
+	public void destroy(@Disposes EntityManagerFactory factory) {
+		if (factory.isOpen()) {
+			factory.close();
+		}
 	}
-
-	@PreDestroy
-	public void destroy() {
-		factory.close();
-	}
-
-    protected EntityManagerFactory getEntityManagerFactory() {
-        return Persistence.createEntityManagerFactory("default");
-    }
 }

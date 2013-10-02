@@ -16,42 +16,45 @@
  */
 package br.com.caelum.vraptor.util.jpa;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import javax.enterprise.context.RequestScoped;
+import javax.enterprise.inject.Disposes;
+import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 
-import br.com.caelum.vraptor.ioc.Component;
-import br.com.caelum.vraptor.ioc.ComponentFactory;
-import br.com.caelum.vraptor.ioc.RequestScoped;
-
 /**
- * An {@link EntityManager} creator, that creates an instance for each requests.
+ * An {@link EntityManager} producer, that creates an instance for each request.
+ * 
  * @author Lucas Cavalcanti
+ * @author Otávio Garcia
  */
-@Component
-@RequestScoped
-public class EntityManagerCreator implements ComponentFactory<EntityManager>{
+public class EntityManagerCreator {
 
 	private final EntityManagerFactory factory;
-	private EntityManager entityManager;
 
+	/**
+	 * @deprecated CDI eyes only.
+	 */
+	protected EntityManagerCreator() {
+		this(null);
+	}
+
+	@Inject
 	public EntityManagerCreator(EntityManagerFactory factory) {
 		this.factory = factory;
 	}
 
-	@PostConstruct
-	public void create() {
-		entityManager = factory.createEntityManager();
+	@Produces
+	@RequestScoped
+	public EntityManager getEntityManager() {
+		return factory.createEntityManager();
 	}
 
-	public EntityManager getInstance() {
-		return entityManager;
-	}
-
-	@PreDestroy
-	public void destroy() {
-		entityManager.close();
+	public void destroy(@Disposes EntityManager entityManager) {
+		if (entityManager.isOpen()) {
+			entityManager.close();
+		}
 	}
 
 }

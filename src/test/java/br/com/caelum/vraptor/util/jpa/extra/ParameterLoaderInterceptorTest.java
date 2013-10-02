@@ -26,14 +26,13 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.stubbing.Stubber;
 
 import br.com.caelum.vraptor.Result;
+import br.com.caelum.vraptor.controller.ControllerMethod;
+import br.com.caelum.vraptor.controller.DefaultControllerMethod;
 import br.com.caelum.vraptor.converter.LongConverter;
 import br.com.caelum.vraptor.converter.StringConverter;
 import br.com.caelum.vraptor.core.Converters;
 import br.com.caelum.vraptor.core.InterceptorStack;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
-import br.com.caelum.vraptor.resource.DefaultResourceMethod;
-import br.com.caelum.vraptor.resource.ResourceMethod;
-import br.com.caelum.vraptor.util.test.MockLocalization;
 import br.com.caelum.vraptor.view.FlashScope;
 
 public class ParameterLoaderInterceptorTest {
@@ -54,21 +53,21 @@ public class ParameterLoaderInterceptorTest {
     private ParameterLoaderInterceptor interceptor;
     private @Mock InterceptorStack stack;
     private @Mock Object instance;
-    private ResourceMethod method;
-    private ResourceMethod methodOtherIdName;
-    private ResourceMethod other;
-    private ResourceMethod noId;
-    private ResourceMethod methodWithoutLoad;
+    private ControllerMethod method;
+    private ControllerMethod methodOtherIdName;
+    private ControllerMethod other;
+    private ControllerMethod noId;
+    private ControllerMethod methodWithoutLoad;
     
     @Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
-		interceptor = new ParameterLoaderInterceptor(em, request, provider, result, converters, new MockLocalization(), flash);
-        method = DefaultResourceMethod.instanceFor(Resource.class, Resource.class.getMethod("method", Entity.class));
-        methodWithoutLoad = DefaultResourceMethod.instanceFor(Resource.class, Resource.class.getMethod("methodWithoutLoad"));
-        methodOtherIdName = DefaultResourceMethod.instanceFor(Resource.class, Resource.class.getMethod("methodOtherIdName", EntityOtherIdName.class));
-        other = DefaultResourceMethod.instanceFor(Resource.class, Resource.class.getMethod("other", OtherEntity.class, String.class));
-        noId = DefaultResourceMethod.instanceFor(Resource.class, Resource.class.getMethod("noId", NoIdEntity.class));
+		interceptor = new ParameterLoaderInterceptor(em, request, provider, result, converters, flash);
+        method = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("method", Entity.class));
+        methodWithoutLoad = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodWithoutLoad"));
+        methodOtherIdName = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodOtherIdName", EntityOtherIdName.class));
+        other = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("other", OtherEntity.class, String.class));
+        noId = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("noId", NoIdEntity.class));
 
 		when(converters.to(Long.class)).thenReturn(new LongConverter());
 		when(converters.to(String.class)).thenReturn(new StringConverter());

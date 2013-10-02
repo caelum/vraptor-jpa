@@ -1,6 +1,5 @@
 package br.com.caelum.vraptor.util.jpa;
 
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,14 +15,14 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import br.com.caelum.vraptor.Validator;
-import br.com.caelum.vraptor.core.InterceptorStack;
-import br.com.caelum.vraptor.resource.ResourceMethod;
+import br.com.caelum.vraptor.controller.ControllerMethod;
+import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
 
 public class JPATransactionInterceptorTest {
 
     @Mock private EntityManager entityManager;
-    @Mock private InterceptorStack stack;
-    @Mock private ResourceMethod method;
+    @Mock private SimpleInterceptorStack stack;
+    @Mock private ControllerMethod method;
     @Mock private EntityTransaction transaction;
     private Object instance;
 	@Mock private Validator validator;
@@ -40,12 +39,12 @@ public class JPATransactionInterceptorTest {
         when(entityManager.getTransaction()).thenReturn(transaction);
         when(transaction.isActive()).thenReturn(true);
 
-        interceptor.intercept(stack, method, instance);
+        interceptor.intercept(stack);
 
         InOrder callOrder = inOrder(entityManager, transaction, stack);
         callOrder.verify(entityManager).getTransaction();
         callOrder.verify(transaction).begin();
-        callOrder.verify(stack).next(method, instance);
+        callOrder.verify(stack).next();
         callOrder.verify(transaction).commit();
     }
 
@@ -56,7 +55,7 @@ public class JPATransactionInterceptorTest {
         when(entityManager.getTransaction()).thenReturn(transaction);
         when(transaction.isActive()).thenReturn(true);
 
-        interceptor.intercept(stack, method, instance);
+        interceptor.intercept(stack);
 
         verify(transaction).rollback();
     }
@@ -69,7 +68,7 @@ public class JPATransactionInterceptorTest {
         when(transaction.isActive()).thenReturn(true);
         when(validator.hasErrors()).thenReturn(true);
 
-        interceptor.intercept(stack, method, instance);
+        interceptor.intercept(stack);
 
         verify(transaction).rollback();
     }
@@ -82,7 +81,7 @@ public class JPATransactionInterceptorTest {
         when(transaction.isActive()).thenReturn(true);
         when(validator.hasErrors()).thenReturn(false);
 
-        interceptor.intercept(stack, method, instance);
+        interceptor.intercept(stack);
 
         verify(transaction).commit();
     }
@@ -94,13 +93,8 @@ public class JPATransactionInterceptorTest {
         when(entityManager.getTransaction()).thenReturn(transaction);
         when(transaction.isActive()).thenReturn(false);
 
-        interceptor.intercept(stack, method, instance);
+        interceptor.intercept(stack);
 
         verify(transaction, never()).rollback();
-    }
-
-    @Test
-    public void shouldAcceptAllRequests() {
-        assertTrue(new JPATransactionInterceptor(null, null).accepts(null));
     }
 }

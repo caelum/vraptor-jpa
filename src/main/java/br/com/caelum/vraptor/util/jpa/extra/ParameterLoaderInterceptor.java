@@ -33,15 +33,13 @@ import javax.servlet.http.HttpServletRequest;
 import br.com.caelum.vraptor.Converter;
 import br.com.caelum.vraptor.InterceptionException;
 import br.com.caelum.vraptor.Intercepts;
-import br.com.caelum.vraptor.Lazy;
 import br.com.caelum.vraptor.Result;
+import br.com.caelum.vraptor.controller.ControllerMethod;
 import br.com.caelum.vraptor.core.Converters;
 import br.com.caelum.vraptor.core.InterceptorStack;
-import br.com.caelum.vraptor.core.Localization;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
 import br.com.caelum.vraptor.interceptor.Interceptor;
 import br.com.caelum.vraptor.interceptor.ParametersInstantiatorInterceptor;
-import br.com.caelum.vraptor.resource.ResourceMethod;
 import br.com.caelum.vraptor.view.FlashScope;
 
 import com.google.common.base.Predicate;
@@ -57,7 +55,6 @@ import com.google.common.collect.Iterables;
  *
  */
 @Intercepts(before=ParametersInstantiatorInterceptor.class)
-@Lazy
 public class ParameterLoaderInterceptor implements Interceptor {
 
 	private final EntityManager em;
@@ -65,25 +62,23 @@ public class ParameterLoaderInterceptor implements Interceptor {
 	private final ParameterNameProvider provider;
 	private final Result result;
 	private final Converters converters;
-	private final Localization localization;
     private final FlashScope flash;
 
     public ParameterLoaderInterceptor(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
-			Result result, Converters converters, Localization localization, FlashScope flash) {
+			Result result, Converters converters, FlashScope flash) {
 		this.em = em;
 		this.request = request;
 		this.provider = provider;
 		this.result = result;
 		this.converters = converters;
-		this.localization = localization;
         this.flash = flash;
     }
 
-    public boolean accepts(ResourceMethod method) {
+    public boolean accepts(ControllerMethod method) {
         return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
     }
 
-	public void intercept(InterceptorStack stack, ResourceMethod method, Object resourceInstance)
+	public void intercept(InterceptorStack stack, ControllerMethod method, Object resourceInstance)
 			throws InterceptionException {
 		Annotation[][] annotations = method.getMethod().getParameterAnnotations();
 
@@ -129,7 +124,7 @@ public class ParameterLoaderInterceptor implements Interceptor {
         Converter<?> converter = converters.to(idType.getJavaType());
         checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idType);
 
-        Serializable id = (Serializable) converter.convert(parameter, type, localization.getBundle());
+        Serializable id = (Serializable) converter.convert(parameter, type);
         return em.find(type, id);
 	}
 

@@ -16,42 +16,47 @@
  */
 package br.com.caelum.vraptor.util.jpa;
 
+import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
 import br.com.caelum.vraptor.Intercepts;
 import br.com.caelum.vraptor.Validator;
-import br.com.caelum.vraptor.core.InterceptorStack;
-import br.com.caelum.vraptor.interceptor.Interceptor;
-import br.com.caelum.vraptor.ioc.Component;
-import br.com.caelum.vraptor.resource.ResourceMethod;
+import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
 
 /**
  * An interceptor that manages Entity Manager Transaction. All requests are intercepted
  * and a transaction is created before execution. If the request has no erros, the transaction
- * will commited, or a rollback occurs otherwise. 
+ * will commited, or a rollback occurs otherwise.
  * 
  * @author Lucas Cavalcanti
  */
-@Component
 @Intercepts
-public class JPATransactionInterceptor implements Interceptor {
+public class JPATransactionInterceptor {
 
 	private final EntityManager manager;
 	private final Validator validator;
 
+    /**
+     * @deprecated CDI eyes only.
+     */
+	protected JPATransactionInterceptor() {
+        this(null, null);
+    }
+	
+	@Inject
 	public JPATransactionInterceptor(EntityManager manager, Validator validator) {
 		this.manager = manager;
 		this.validator = validator;
 	}
 
-	public void intercept(InterceptorStack stack, ResourceMethod method, Object instance) {
+	public void intercept(SimpleInterceptorStack stack) {
 		EntityTransaction transaction = null;
 		try {
 		    transaction = manager.getTransaction();
 		    transaction.begin();
 			
-			stack.next(method, instance);
+			stack.next();
 			
 			if (!validator.hasErrors() && transaction.isActive()) {
 				transaction.commit();
@@ -61,9 +66,5 @@ public class JPATransactionInterceptor implements Interceptor {
 				transaction.rollback();
 			}
 		}
-	}
-
-	public boolean accepts(ResourceMethod method) {
-		return true; // Will intercept all requests
 	}
 }
