@@ -37,12 +37,12 @@ public class JPATransactionInterceptor {
 	private final EntityManager manager;
 	private final Validator validator;
 
-    /**
-     * @deprecated CDI eyes only.
-     */
+	/**
+	 * @deprecated CDI eyes only.
+	 */
 	protected JPATransactionInterceptor() {
-        this(null, null);
-    }
+		this(null, null);
+	}
 	
 	@Inject
 	public JPATransactionInterceptor(EntityManager manager, Validator validator) {
@@ -53,8 +53,8 @@ public class JPATransactionInterceptor {
 	public void intercept(SimpleInterceptorStack stack) {
 		EntityTransaction transaction = null;
 		try {
-		    transaction = manager.getTransaction();
-		    transaction.begin();
+			transaction = manager.getTransaction();
+			transaction.begin();
 			
 			stack.next();
 			

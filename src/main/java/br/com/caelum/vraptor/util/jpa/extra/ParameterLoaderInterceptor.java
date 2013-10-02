@@ -62,21 +62,21 @@ public class ParameterLoaderInterceptor implements Interceptor {
 	private final ParameterNameProvider provider;
 	private final Result result;
 	private final Converters converters;
-    private final FlashScope flash;
+	private final FlashScope flash;
 
-    public ParameterLoaderInterceptor(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
+	public ParameterLoaderInterceptor(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
 			Result result, Converters converters, FlashScope flash) {
 		this.em = em;
 		this.request = request;
 		this.provider = provider;
 		this.result = result;
 		this.converters = converters;
-        this.flash = flash;
-    }
+		this.flash = flash;
+	}
 
-    public boolean accepts(ControllerMethod method) {
-        return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
-    }
+	public boolean accepts(ControllerMethod method) {
+		return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
+	}
 
 	public void intercept(InterceptorStack stack, ControllerMethod method, Object resourceInstance)
 			throws InterceptionException {
@@ -85,58 +85,58 @@ public class ParameterLoaderInterceptor implements Interceptor {
 		String[] names = provider.parameterNamesFor(method.getMethod());
 		Class<?>[] types = method.getMethod().getParameterTypes();
 
-        Object[] args = flash.consumeParameters(method);
+		Object[] args = flash.consumeParameters(method);
 
-        for (int i = 0; i < names.length; i++) {
-            if (hasLoadAnnotation(annotations[i])) {
+		for (int i = 0; i < names.length; i++) {
+			if (hasLoadAnnotation(annotations[i])) {
 				Object loaded = load(names[i], types[i]);
 
-                if (loaded == null) {
-                    result.notFound();
-                    return;
-                }
+				if (loaded == null) {
+					result.notFound();
+					return;
+				}
 
-                if (args != null) {
-                    args[i] = loaded;
-                } else {
-                    request.setAttribute(names[i], loaded);
-                }
+				if (args != null) {
+					args[i] = loaded;
+				} else {
+					request.setAttribute(names[i], loaded);
+				}
 			}
 		}
-        flash.includeParameters(method, args);
+		flash.includeParameters(method, args);
 
 		stack.next(method, resourceInstance);
 	}
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private <T> Object load(String name, Class type) {
-        EntityType<T> entity = em.getMetamodel().entity(type);
-        
-        Type<?> idType = entity.getIdType();
-	    checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
-	    
-        SingularAttribute idProperty = entity.getDeclaredId(idType.getJavaType());
-        String parameter = request.getParameter(name + "." + idProperty.getName());
-        if (parameter == null) {
-            return null;
-        }
-	    
-        Converter<?> converter = converters.to(idType.getJavaType());
-        checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idType);
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private <T> Object load(String name, Class type) {
+		EntityType<T> entity = em.getMetamodel().entity(type);
+		
+		Type<?> idType = entity.getIdType();
+		checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
+		
+		SingularAttribute idProperty = entity.getDeclaredId(idType.getJavaType());
+		String parameter = request.getParameter(name + "." + idProperty.getName());
+		if (parameter == null) {
+			return null;
+		}
+		
+		Converter<?> converter = converters.to(idType.getJavaType());
+		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idType);
 
-        Serializable id = (Serializable) converter.convert(parameter, type);
-        return em.find(type, id);
+		Serializable id = (Serializable) converter.convert(parameter, type);
+		return em.find(type, id);
 	}
 
-    private boolean hasLoadAnnotation(Annotation[] annotation) {
-        return !isEmpty(Iterables.filter(asList(annotation), Load.class));
-    }
+	private boolean hasLoadAnnotation(Annotation[] annotation) {
+		return !isEmpty(Iterables.filter(asList(annotation), Load.class));
+	}
 
-    public static Predicate<Annotation[]> hasAnnotation(final Class<?> annotation) {
-        return new Predicate<Annotation[]>() {
-            public boolean apply(Annotation[] param) {
-                return any(asList(param), instanceOf(annotation));
-            }
-        };
-    }
+	public static Predicate<Annotation[]> hasAnnotation(final Class<?> annotation) {
+		return new Predicate<Annotation[]>() {
+			public boolean apply(Annotation[] param) {
+				return any(asList(param), instanceOf(annotation));
+			}
+		};
+	}
 }
