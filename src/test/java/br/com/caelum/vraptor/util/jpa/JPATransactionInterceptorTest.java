@@ -28,15 +28,17 @@ public class JPATransactionInterceptorTest {
     @Mock private EntityTransaction transaction;
 	@Mock private Validator validator;
 	@Mock private MutableResponse response;
+	
+	private JPATransactionInterceptor interceptor;
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+        interceptor = new JPATransactionInterceptor(entityManager, validator, response);
     }
 
     @Test
     public void shouldStartAndCommitTransaction() throws Exception {
-        JPATransactionInterceptor interceptor = new JPATransactionInterceptor(entityManager, validator, response);
 
         when(entityManager.getTransaction()).thenReturn(transaction);
         when(transaction.isActive()).thenReturn(true);
@@ -52,7 +54,6 @@ public class JPATransactionInterceptorTest {
 
     @Test
     public void shouldRollbackTransactionIfStillActiveWhenExecutionFinishes() throws Exception {
-        JPATransactionInterceptor interceptor = new JPATransactionInterceptor(entityManager, validator, response);
 
         when(entityManager.getTransaction()).thenReturn(transaction);
         when(transaction.isActive()).thenReturn(true);
@@ -64,7 +65,6 @@ public class JPATransactionInterceptorTest {
 
     @Test
     public void shouldRollbackIfValidatorHasErrors() {
-        JPATransactionInterceptor interceptor = new JPATransactionInterceptor(entityManager, validator, response);
 
         when(entityManager.getTransaction()).thenReturn(transaction);
         when(transaction.isActive()).thenReturn(true);
@@ -77,7 +77,6 @@ public class JPATransactionInterceptorTest {
     
     @Test
     public void shouldCommitIfValidatorHasNoErrors() {
-        JPATransactionInterceptor interceptor = new JPATransactionInterceptor(entityManager, validator, response);
 
         when(entityManager.getTransaction()).thenReturn(transaction);
         when(transaction.isActive()).thenReturn(true);
@@ -90,7 +89,6 @@ public class JPATransactionInterceptorTest {
     
     @Test
     public void doNothingIfHasNoActiveTransation() {
-        JPATransactionInterceptor interceptor = new JPATransactionInterceptor(entityManager, validator, response);
 
         when(entityManager.getTransaction()).thenReturn(transaction);
         when(transaction.isActive()).thenReturn(false);
@@ -102,7 +100,6 @@ public class JPATransactionInterceptorTest {
     
     @Test
 	public void shouldConfigureARedirectListener() {
-		JPATransactionInterceptor interceptor = new JPATransactionInterceptor(entityManager, validator, response);
 
 		when(entityManager.getTransaction()).thenReturn(transaction);
 
