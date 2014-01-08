@@ -24,38 +24,33 @@ import static java.util.Arrays.asList;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 
+import javax.enterprise.event.Observes;
 import javax.persistence.EntityManager;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
 import javax.servlet.http.HttpServletRequest;
 
-import br.com.caelum.vraptor.Converter;
-import br.com.caelum.vraptor.InterceptionException;
-import br.com.caelum.vraptor.Intercepts;
 import br.com.caelum.vraptor.Result;
 import br.com.caelum.vraptor.controller.ControllerMethod;
 import br.com.caelum.vraptor.core.Converters;
-import br.com.caelum.vraptor.core.InterceptorStack;
+import br.com.caelum.vraptor.events.ControllerMethodDiscovered;
+import br.com.caelum.vraptor.http.Parameter;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
-import br.com.caelum.vraptor.interceptor.Interceptor;
-import br.com.caelum.vraptor.interceptor.ParametersInstantiatorInterceptor;
 import br.com.caelum.vraptor.view.FlashScope;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
- * Interceptor that loads given entity from the database.
+ * Observer that loads given entity from the database.
  *
  * @author Lucas Cavalcanti
  * @author Cecilia Fernandes
  * @author Otávio Scherer Garcia
  * @since 3.3.2
- *
  */
-@Intercepts(before=ParametersInstantiatorInterceptor.class)
-public class ParameterLoaderInterceptor implements Interceptor {
+public class ParameterLoader {
 
 	private final EntityManager em;
 	private final HttpServletRequest request;
@@ -64,7 +59,7 @@ public class ParameterLoaderInterceptor implements Interceptor {
 	private final Converters converters;
 	private final FlashScope flash;
 
-	public ParameterLoaderInterceptor(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
+	public ParameterLoader(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
 			Result result, Converters converters, FlashScope flash) {
 		this.em = em;
 		this.request = request;
@@ -74,22 +69,26 @@ public class ParameterLoaderInterceptor implements Interceptor {
 		this.flash = flash;
 	}
 
-	public boolean accepts(ControllerMethod method) {
+	public boolean containsLoadAnnotation(ControllerMethod method) {
 		return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
 	}
 
-	public void intercept(InterceptorStack stack, ControllerMethod method, Object resourceInstance)
-			throws InterceptionException {
+	public void load(@Observes ControllerMethodDiscovered event){
+		
+		ControllerMethod method = event.getControllerMethod();
+		
+		if (!containsLoadAnnotation(method)) return;
+		
 		Annotation[][] annotations = method.getMethod().getParameterAnnotations();
 
-		String[] names = provider.parameterNamesFor(method.getMethod());
+		Parameter[] parameters = provider.parametersFor(method.getMethod());
 		Class<?>[] types = method.getMethod().getParameterTypes();
 
 		Object[] args = flash.consumeParameters(method);
 
-		for (int i = 0; i < names.length; i++) {
+		for (int i = 0; i < parameters.length; i++) {
 			if (hasLoadAnnotation(annotations[i])) {
-				Object loaded = load(names[i], types[i]);
+				Object loaded = load(parameters[i].getName(), types[i]);
 
 				if (loaded == null) {
 					result.notFound();
@@ -99,13 +98,11 @@ public class ParameterLoaderInterceptor implements Interceptor {
 				if (args != null) {
 					args[i] = loaded;
 				} else {
-					request.setAttribute(names[i], loaded);
+					request.setAttribute(parameters[i].getName(), loaded);
 				}
 			}
 		}
 		flash.includeParameters(method, args);
-
-		stack.next(method, resourceInstance);
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -121,7 +118,7 @@ public class ParameterLoaderInterceptor implements Interceptor {
 			return null;
 		}
 		
-		Converter<?> converter = converters.to(idType.getJavaType());
+		br.com.caelum.vraptor.converter.Converter<?> converter = converters.to(idType.getJavaType());
 		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idType);
 
 		Serializable id = (Serializable) converter.convert(parameter, type);

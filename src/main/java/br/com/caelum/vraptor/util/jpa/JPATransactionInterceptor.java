@@ -22,9 +22,9 @@ import javax.persistence.EntityTransaction;
 
 import br.com.caelum.vraptor.AroundCall;
 import br.com.caelum.vraptor.Intercepts;
-import br.com.caelum.vraptor.Validator;
 import br.com.caelum.vraptor.http.MutableResponse;
 import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
+import br.com.caelum.vraptor.validator.Validator;
 
 /**
  * An interceptor that manages Entity Manager Transaction. All requests are intercepted
