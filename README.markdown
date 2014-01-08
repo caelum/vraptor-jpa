@@ -4,7 +4,7 @@ A VRaptor JPA plugin.
 
 # installing
 
-[Copy the jar file](http://repo1.maven.org/maven2/br/com/caelum/vraptor/vraptor-jpa/1.0.0/vraptor-jpa-1.0.0.jar) to your app or use:
+[Copy the jar file](http://repo1.maven.org/maven2/br/com/caelum/vraptor/vraptor-jpa/) to your app or use:
 
 		<dependency>
 			<groupId>br.com.caelum.vraptor</groupId>

@@ -16,54 +16,81 @@
  */
 package br.com.caelum.vraptor.util.jpa;
 
+import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
+import br.com.caelum.vraptor.AroundCall;
 import br.com.caelum.vraptor.Intercepts;
-import br.com.caelum.vraptor.Validator;
-import br.com.caelum.vraptor.core.InterceptorStack;
-import br.com.caelum.vraptor.interceptor.Interceptor;
-import br.com.caelum.vraptor.ioc.Component;
-import br.com.caelum.vraptor.resource.ResourceMethod;
+import br.com.caelum.vraptor.http.MutableResponse;
+import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
+import br.com.caelum.vraptor.validator.Validator;
 
 /**
  * An interceptor that manages Entity Manager Transaction. All requests are intercepted
  * and a transaction is created before execution. If the request has no erros, the transaction
- * will commited, or a rollback occurs otherwise. 
+ * will commited, or a rollback occurs otherwise.
  * 
  * @author Lucas Cavalcanti
  */
-@Component
 @Intercepts
-public class JPATransactionInterceptor implements Interceptor {
+public class JPATransactionInterceptor {
 
 	private final EntityManager manager;
 	private final Validator validator;
+	private final MutableResponse response;
 
-	public JPATransactionInterceptor(EntityManager manager, Validator validator) {
+	/**
+	 * @deprecated CDI eyes only.
+	 */
+	protected JPATransactionInterceptor() {
+		this(null, null, null);
+	}
+	
+	@Inject
+	public JPATransactionInterceptor(EntityManager manager, Validator validator, MutableResponse response) {
 		this.manager = manager;
 		this.validator = validator;
+		this.response = response;
 	}
 
-	public void intercept(InterceptorStack stack, ResourceMethod method, Object instance) {
+	@AroundCall
+	public void intercept(SimpleInterceptorStack stack) {
+		
+		addRedirectListener();
+		
 		EntityTransaction transaction = null;
 		try {
-		    transaction = manager.getTransaction();
-		    transaction.begin();
+			transaction = manager.getTransaction();
+			transaction.begin();
 			
-			stack.next(method, instance);
+			stack.next();
 			
-			if (!validator.hasErrors() && transaction.isActive()) {
-				transaction.commit();
-			}
+			commit(transaction);
+			
 		} finally {
 			if (transaction != null && transaction.isActive()) {
 				transaction.rollback();
 			}
 		}
 	}
+	
+	private void commit(EntityTransaction transaction) {
+		if (!validator.hasErrors() && transaction.isActive()) {
+			transaction.commit();
+		}
+	}
 
-	public boolean accepts(ResourceMethod method) {
-		return true; // Will intercept all requests
+	/**
+	 * We force the commit before the redirect, this way we can abort the
+	 * redirect if a database error occurs.
+	 */
+	private void addRedirectListener() {
+		response.addRedirectListener(new MutableResponse.RedirectListener() {
+			@Override
+			public void beforeRedirect() {
+				commit(manager.getTransaction());
+			}
+		});
 	}
 }

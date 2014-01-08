@@ -27,18 +27,17 @@ public class EntityManagerCreatorTest {
         when(factory.createEntityManager()).thenReturn(entityManager);
         
         EntityManagerCreator creator = new EntityManagerCreator(factory);
-        creator.create();
         
-        assertEquals(entityManager, creator.getInstance());
+        assertEquals(entityManager, creator.getEntityManager());
     }
     
     @Test
     public void shouldCloseSessionOnDestroy() {
         when(factory.createEntityManager()).thenReturn(entityManager);
+        when(entityManager.isOpen()).thenReturn(true);
         
         EntityManagerCreator creator = new EntityManagerCreator(factory);
-        creator.create();
-        creator.destroy();
+        creator.destroy(creator.getEntityManager());
         
         verify(entityManager).close();
     }

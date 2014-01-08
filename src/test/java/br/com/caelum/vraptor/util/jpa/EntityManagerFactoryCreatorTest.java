@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import javax.persistence.EntityManagerFactory;
 
@@ -28,9 +29,9 @@ public class EntityManagerFactoryCreatorTest {
         
         doReturn(factory).when(spy).getEntityManagerFactory();
         
-        spy.create();
+        spy.getEntityManagerFactory();
         
-        assertEquals(factory, spy.getInstance());
+        assertEquals(factory, spy.getEntityManagerFactory());
     }
 
     @Test
@@ -39,9 +40,9 @@ public class EntityManagerFactoryCreatorTest {
         EntityManagerFactoryCreator spy = spy(creator);
         
         doReturn(factory).when(spy).getEntityManagerFactory();
+        when(factory.isOpen()).thenReturn(true);
         
-        spy.create();
-        spy.destroy();
+        spy.destroy(factory);
         
         verify(factory).close();
     }
