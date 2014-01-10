@@ -1,6 +1,6 @@
 ## vraptor-jpa
 
-A VRaptor JPA plugin.
+A VRaptor JPA plugin to use with VRaptor 4 with environment support.
 
 # installing
 
@@ -9,7 +9,7 @@ A VRaptor JPA plugin.
 		<dependency>
 			<groupId>br.com.caelum.vraptor</groupId>
 			<artifactId>vraptor-jpa</artifactId>
-			<version>1.0.0</version>
+			<version>4.0.0</version> <!-- or the latest version -->
 		</dependency>
 
 This plugin doesn't include any JPA Provider. You need to add your prefered provider.
