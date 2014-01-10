@@ -1,4 +1,4 @@
-package br.com.caelum.vraptor.util.jpa.extra;
+package br.com.caelum.vraptor.jpa.extra;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;

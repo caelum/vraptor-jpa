@@ -1,4 +1,4 @@
-package br.com.caelum.vraptor.util.jpa;
+package br.com.caelum.vraptor.jpa;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.inOrder;
