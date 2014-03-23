@@ -88,7 +88,7 @@
 		<dependency>
 			<groupId>br.com.caelum</groupId>
 			<artifactId>vraptor</artifactId>
-			<version>4.0.0-beta-4</version>
+			<version>4.0.0-RC2-SNAPSHOT</version>
 			<scope>compile</scope>
 		</dependency>
 
