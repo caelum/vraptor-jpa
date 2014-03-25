@@ -25,7 +25,6 @@ import java.io.Serializable;
 import java.lang.annotation.Annotation;
 
 import javax.persistence.EntityManager;
-import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.IdentifiableType;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
