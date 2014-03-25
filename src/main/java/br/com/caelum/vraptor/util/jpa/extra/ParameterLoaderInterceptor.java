@@ -26,6 +26,7 @@ import java.lang.annotation.Annotation;
 
 import javax.persistence.EntityManager;
 import javax.persistence.metamodel.EntityType;
+import javax.persistence.metamodel.IdentifiableType;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
 import javax.servlet.http.HttpServletRequest;
@@ -144,11 +145,11 @@ public class ParameterLoaderInterceptor implements Interceptor {
         };
     }
     
-    private <T> String getIdName(EntityType<T> entity, Type<?> idType) {
+    private <T> String getIdName(IdentifiableType<? super T> entity, Type<?> idType) {
     	SingularAttribute<?, ?> idProperty = null;
     	
 		if (hasSupertype(entity)) {
-			idProperty = entity.getSupertype().getDeclaredId(idType.getJavaType());
+			entity = entity.getSupertype();
 		} 
 		
 		idProperty = entity.getDeclaredId(idType.getJavaType());
@@ -156,7 +157,7 @@ public class ParameterLoaderInterceptor implements Interceptor {
 		return idProperty.getName();
 	}
 
-	private <T> boolean hasSupertype(EntityType<T> entity) {
+	private <T> boolean hasSupertype(IdentifiableType<? super T> entity) {
 		return entity.getSupertype() != null;
 	}
 }
