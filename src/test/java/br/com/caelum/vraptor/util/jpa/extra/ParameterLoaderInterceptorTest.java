@@ -88,6 +88,7 @@ public class ParameterLoaderInterceptorTest {
         when(em.getMetamodel()).thenReturn(metamodel);
         when(metamodel.entity(any(Class.class))).thenReturn(entityType);
         when(entityType.getIdType()).thenReturn(type);
+        when(attribute.getType()).thenReturn(type);
 	}
     
     @Test

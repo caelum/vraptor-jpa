@@ -61,22 +61,22 @@ import com.google.common.collect.Iterables;
 @Lazy
 public class ParameterLoaderInterceptor implements Interceptor {
 
-	private final EntityManager em;
-	private final HttpServletRequest request;
-	private final ParameterNameProvider provider;
-	private final Result result;
-	private final Converters converters;
-	private final Localization localization;
+    private final EntityManager em;
+    private final HttpServletRequest request;
+    private final ParameterNameProvider provider;
+    private final Result result;
+    private final Converters converters;
+    private final Localization localization;
     private final FlashScope flash;
 
     public ParameterLoaderInterceptor(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
-			Result result, Converters converters, Localization localization, FlashScope flash) {
-		this.em = em;
-		this.request = request;
-		this.provider = provider;
-		this.result = result;
-		this.converters = converters;
-		this.localization = localization;
+        Result result, Converters converters, Localization localization, FlashScope flash) {
+        this.em = em;
+        this.request = request;
+        this.provider = provider;
+        this.result = result;
+        this.converters = converters;
+        this.localization = localization;
         this.flash = flash;
     }
 
@@ -84,18 +84,18 @@ public class ParameterLoaderInterceptor implements Interceptor {
         return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
     }
 
-	public void intercept(InterceptorStack stack, ResourceMethod method, Object resourceInstance)
-			throws InterceptionException {
-		Annotation[][] annotations = method.getMethod().getParameterAnnotations();
+    public void intercept(InterceptorStack stack, ResourceMethod method, Object resourceInstance)
+        throws InterceptionException {
+        Annotation[][] annotations = method.getMethod().getParameterAnnotations();
 
-		String[] names = provider.parameterNamesFor(method.getMethod());
-		Class<?>[] types = method.getMethod().getParameterTypes();
+        String[] names = provider.parameterNamesFor(method.getMethod());
+        Class<?>[] types = method.getMethod().getParameterTypes();
 
         Object[] args = flash.consumeParameters(method);
 
         for (int i = 0; i < names.length; i++) {
             if (hasLoadAnnotation(annotations[i])) {
-				Object loaded = load(names[i], types[i]);
+                Object loaded = load(names[i], types[i]);
 
                 if (loaded == null) {
                     result.notFound();
@@ -105,33 +105,30 @@ public class ParameterLoaderInterceptor implements Interceptor {
                 if (args != null) {
                     args[i] = loaded;
                 } else {
-                    request.setAttribute(names[i], loaded);
+                   request.setAttribute(names[i], loaded);
                 }
-			}
-		}
+            }
+        }
         flash.includeParameters(method, args);
 
-		stack.next(method, resourceInstance);
-	}
+        stack.next(method, resourceInstance);
+    }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private <T> Object load(String name, Class type) {
-        EntityType<T> entity = em.getMetamodel().entity(type);
-        
-        Type<?> idType = entity.getIdType();
-	    checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
-	    
-	    String parameter = request.getParameter(name + "." + getIdName(entity, idType));
+        final SingularAttribute<?, ?> idProperty = getIdProperty(type);
+            
+        final String parameter = request.getParameter(name + "." + idProperty.getName());
         if (parameter == null) {
             return null;
         }
-	    
-        Converter<?> converter = converters.to(idType.getJavaType());
-        checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idType);
+            
+        Converter<?> converter = converters.to(idProperty.getType().getJavaType());
+        checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idProperty.getType());
 
         Serializable id = (Serializable) converter.convert(parameter, type, localization.getBundle());
         return em.find(type, id);
-	}
+    }
 
     private boolean hasLoadAnnotation(Annotation[] annotation) {
         return !isEmpty(Iterables.filter(asList(annotation), Load.class));
@@ -145,19 +142,21 @@ public class ParameterLoaderInterceptor implements Interceptor {
         };
     }
     
-    private <T> String getIdName(IdentifiableType<? super T> entity, Type<?> idType) {
-    	SingularAttribute<?, ?> idProperty = null;
-    	
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	private <T> SingularAttribute<?, ?> getIdProperty(final Class type) {
+		IdentifiableType entity = em.getMetamodel().entity(type);
+		
+		Type<?> idType = entity.getIdType();
+		checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
+
 		if (hasSupertype(entity)) {
 			entity = entity.getSupertype();
-		} 
-		
-		idProperty = entity.getDeclaredId(idType.getJavaType());
-		
-		return idProperty.getName();
-	}
+        }
+        
+        return entity.getDeclaredId(idType.getJavaType());
+    }
 
-	private <T> boolean hasSupertype(IdentifiableType<? super T> entity) {
-		return entity.getSupertype() != null;
-	}
+    private <T> boolean hasSupertype(IdentifiableType<? super T> entity) {
+        return entity.getSupertype() != null;
+    }
 }
