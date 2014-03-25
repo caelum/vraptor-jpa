@@ -120,8 +120,7 @@ public class ParameterLoaderInterceptor implements Interceptor {
         Type<?> idType = entity.getIdType();
 	    checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
 	    
-        SingularAttribute idProperty = entity.getDeclaredId(idType.getJavaType());
-        String parameter = request.getParameter(name + "." + idProperty.getName());
+	    String parameter = request.getParameter(name + "." + getIdName(entity, idType));
         if (parameter == null) {
             return null;
         }
@@ -144,4 +143,20 @@ public class ParameterLoaderInterceptor implements Interceptor {
             }
         };
     }
+    
+    private <T> String getIdName(EntityType<T> entity, Type<?> idType) {
+    	SingularAttribute<?, ?> idProperty = null;
+    	
+		if (hasSupertype(entity)) {
+			idProperty = entity.getSupertype().getDeclaredId(idType.getJavaType());
+		} 
+		
+		idProperty = entity.getDeclaredId(idType.getJavaType());
+		
+		return idProperty.getName();
+	}
+
+	private <T> boolean hasSupertype(EntityType<T> entity) {
+		return entity.getSupertype() != null;
+	}
 }
