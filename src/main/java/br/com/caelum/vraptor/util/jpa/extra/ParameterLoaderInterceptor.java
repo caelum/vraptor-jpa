@@ -25,7 +25,7 @@ import java.io.Serializable;
 import java.lang.annotation.Annotation;
 
 import javax.persistence.EntityManager;
-import javax.persistence.metamodel.EntityType;
+import javax.persistence.metamodel.IdentifiableType;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
 import javax.servlet.http.HttpServletRequest;
@@ -66,9 +66,9 @@ public class ParameterLoaderInterceptor implements Interceptor {
 	private final Result result;
 	private final Converters converters;
 	private final Localization localization;
-    private final FlashScope flash;
+	private final FlashScope flash;
 
-    public ParameterLoaderInterceptor(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
+	public ParameterLoaderInterceptor(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
 			Result result, Converters converters, Localization localization, FlashScope flash) {
 		this.em = em;
 		this.request = request;
@@ -76,12 +76,12 @@ public class ParameterLoaderInterceptor implements Interceptor {
 		this.result = result;
 		this.converters = converters;
 		this.localization = localization;
-        this.flash = flash;
-    }
+		this.flash = flash;
+	}
 
-    public boolean accepts(ResourceMethod method) {
-        return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
-    }
+	public boolean accepts(ResourceMethod method) {
+		return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
+	}
 
 	public void intercept(InterceptorStack stack, ResourceMethod method, Object resourceInstance)
 			throws InterceptionException {
@@ -90,58 +90,72 @@ public class ParameterLoaderInterceptor implements Interceptor {
 		String[] names = provider.parameterNamesFor(method.getMethod());
 		Class<?>[] types = method.getMethod().getParameterTypes();
 
-        Object[] args = flash.consumeParameters(method);
+		Object[] args = flash.consumeParameters(method);
 
-        for (int i = 0; i < names.length; i++) {
-            if (hasLoadAnnotation(annotations[i])) {
+		for (int i = 0; i < names.length; i++) {
+			if (hasLoadAnnotation(annotations[i])) {
 				Object loaded = load(names[i], types[i]);
 
-                if (loaded == null) {
-                    result.notFound();
-                    return;
-                }
+				if (loaded == null) {
+					result.notFound();
+					return;
+				}
 
-                if (args != null) {
-                    args[i] = loaded;
-                } else {
-                    request.setAttribute(names[i], loaded);
-                }
+				if (args != null) {
+					args[i] = loaded;
+				} else {
+					request.setAttribute(names[i], loaded);
+				}
 			}
 		}
-        flash.includeParameters(method, args);
+		flash.includeParameters(method, args);
 
 		stack.next(method, resourceInstance);
 	}
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private <T> Object load(String name, Class type) {
-        EntityType<T> entity = em.getMetamodel().entity(type);
-        
-        Type<?> idType = entity.getIdType();
-	    checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
-	    
-        SingularAttribute idProperty = entity.getDeclaredId(idType.getJavaType());
-        String parameter = request.getParameter(name + "." + idProperty.getName());
-        if (parameter == null) {
-            return null;
-        }
-	    
-        Converter<?> converter = converters.to(idType.getJavaType());
-        checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idType);
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private <T> Object load(String name, Class type) {
+		final SingularAttribute<?, ?> idProperty = getIdProperty(type);
 
-        Serializable id = (Serializable) converter.convert(parameter, type, localization.getBundle());
-        return em.find(type, id);
+		final String parameter = request.getParameter(name + "." + idProperty.getName());
+		if (parameter == null) {
+			return null;
+		}
+
+		Converter<?> converter = converters.to(idProperty.getType().getJavaType());
+		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idProperty.getType());
+
+		Serializable id = (Serializable) converter.convert(parameter, type, localization.getBundle());
+		return em.find(type, id);
 	}
 
-    private boolean hasLoadAnnotation(Annotation[] annotation) {
-        return !isEmpty(Iterables.filter(asList(annotation), Load.class));
-    }
+	private boolean hasLoadAnnotation(Annotation[] annotation) {
+		return !isEmpty(Iterables.filter(asList(annotation), Load.class));
+	}
 
-    public static Predicate<Annotation[]> hasAnnotation(final Class<?> annotation) {
-        return new Predicate<Annotation[]>() {
-            public boolean apply(Annotation[] param) {
-                return any(asList(param), instanceOf(annotation));
-            }
-        };
-    }
+	public static Predicate<Annotation[]> hasAnnotation(final Class<?> annotation) {
+		return new Predicate<Annotation[]>() {
+			public boolean apply(Annotation[] param) {
+				return any(asList(param), instanceOf(annotation));
+			}
+		};
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private <T> SingularAttribute<?, ?> getIdProperty(final Class type) {
+		IdentifiableType entity = em.getMetamodel().entity(type);
+
+		Type<?> idType = entity.getIdType();
+		checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
+
+		if (hasSupertype(entity)) {
+			entity = entity.getSupertype();
+		}
+
+		return entity.getDeclaredId(idType.getJavaType());
+	}
+
+	private <T> boolean hasSupertype(IdentifiableType<? super T> entity) {
+		return entity.getSupertype() != null;
+	}
 }
