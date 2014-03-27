@@ -13,7 +13,9 @@ import static org.mockito.Mockito.when;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Id;
+import javax.persistence.MappedSuperclass;
 import javax.persistence.metamodel.EntityType;
+import javax.persistence.metamodel.MappedSuperclassType;
 import javax.persistence.metamodel.Metamodel;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
@@ -49,6 +51,7 @@ public class ParameterLoaderTest {
     private @Mock EntityType entityType;
     private @Mock Type type;
     private @Mock SingularAttribute attribute;
+    private @Mock MappedSuperclassType mappedSuperclassType;
 
     private ParameterLoader observer;
     private ControllerMethod method;
@@ -56,6 +59,10 @@ public class ParameterLoaderTest {
     private ControllerMethod other;
     private ControllerMethod noId;
     private ControllerMethod methodWithoutLoad;
+	private ControllerMethod methodMappedSuperClass;
+	private ControllerMethod methodChild;
+	private ControllerMethod methodSon;
+	private ControllerMethod methodGrandSon;
     
     @Before
 	public void setUp() throws Exception {
@@ -66,13 +73,18 @@ public class ParameterLoaderTest {
         methodOtherIdName = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodOtherIdName", EntityOtherIdName.class));
         other = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("other", OtherEntity.class, String.class));
         noId = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("noId", NoIdEntity.class));
-
+        methodMappedSuperClass = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodMappedSuperClass", MappedSuperClass.class));
+		methodChild = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodChild", Child.class));
+		methodSon = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodSon", Son.class));
+		methodGrandSon = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodGrandSon", GrandSon.class));
+		
 		when(converters.to(Long.class)).thenReturn(new LongConverter());
 		when(converters.to(String.class)).thenReturn(new StringConverter());
 		
         when(em.getMetamodel()).thenReturn(metamodel);
         when(metamodel.entity(any(Class.class))).thenReturn(entityType);
         when(entityType.getIdType()).thenReturn(type);
+        when(attribute.getType()).thenReturn(type);
 	}
     
     @Test
@@ -128,6 +140,69 @@ public class ParameterLoaderTest {
         when(type.getJavaType()).thenReturn(String.class);
 		observer.load(new MethodReady(other));
 		verify(request).setAttribute("entity", expectedEntity);
+	}
+	
+	@Test
+	@SuppressWarnings({ "unchecked" })
+	public void shouldLoadMappedSuperClassUsingId() throws Exception {
+		Parameter parameter = new Parameter(0, "mappedSuperClass", methodMappedSuperClass.getMethod());
+    	when(provider.parametersFor(methodMappedSuperClass.getMethod())).thenReturn(new Parameter[]{parameter});
+		when(request.getParameter("mappedSuperClass.id")).thenReturn("123");
+		MappedSuperClass expectedEntity = new MappedSuperClass();
+		when(em.find(MappedSuperClass.class, 123L)).thenReturn(expectedEntity);
+        when(entityType.getDeclaredId(Long.class)).thenReturn(attribute);
+        when(attribute.getName()).thenReturn("id");
+        when(type.getJavaType()).thenReturn(Long.class);
+		observer.load(new MethodReady(methodMappedSuperClass));
+		verify(request).setAttribute("mappedSuperClass", expectedEntity);
+	}
+
+	@Test
+	@SuppressWarnings({ "unchecked" })
+	public void shouldLoadChildUsingId() throws Exception {
+		Parameter parameter = new Parameter(0, "child", methodChild.getMethod());
+    	when(provider.parametersFor(methodChild.getMethod())).thenReturn(new Parameter[]{parameter});
+		when(request.getParameter("child.id")).thenReturn("123");
+		Child expectedEntity = new Child();
+		when(em.find(Child.class, 123L)).thenReturn(expectedEntity);
+		when(entityType.getSupertype()).thenReturn(mappedSuperclassType);
+		when(mappedSuperclassType.getDeclaredId(Long.class)).thenReturn(attribute);
+        when(attribute.getName()).thenReturn("id");
+        when(type.getJavaType()).thenReturn(Long.class);
+		observer.load(new MethodReady(methodChild));
+		verify(request).setAttribute("child", expectedEntity);
+	}
+
+	@Test
+	@SuppressWarnings({ "unchecked" })
+	public void shouldLoadSonUsingId() throws Exception {
+		Parameter parameter = new Parameter(0, "son", methodSon.getMethod());
+    	when(provider.parametersFor(methodSon.getMethod())).thenReturn(new Parameter[]{parameter});
+		when(request.getParameter("son.id")).thenReturn("123");
+		Son expectedEntity = new Son();
+		when(em.find(Son.class, 123L)).thenReturn(expectedEntity);
+		when(entityType.getSupertype()).thenReturn(mappedSuperclassType);
+		when(mappedSuperclassType.getDeclaredId(Long.class)).thenReturn(attribute);
+        when(attribute.getName()).thenReturn("id");
+        when(type.getJavaType()).thenReturn(Long.class);
+		observer.load(new MethodReady(methodSon));
+		verify(request).setAttribute("son", expectedEntity);
+	}
+
+	@Test
+	@SuppressWarnings({ "unchecked" })
+	public void shouldLoadGrandSonUsingId() throws Exception {
+		Parameter parameter = new Parameter(0, "grandSon", methodGrandSon.getMethod());
+    	when(provider.parametersFor(methodGrandSon.getMethod())).thenReturn(new Parameter[]{parameter});
+		when(request.getParameter("grandSon.id")).thenReturn("123");
+		GrandSon expectedEntity = new GrandSon();
+		when(em.find(GrandSon.class, 123L)).thenReturn(expectedEntity);
+		when(entityType.getSupertype()).thenReturn(mappedSuperclassType);
+		when(mappedSuperclassType.getDeclaredId(Long.class)).thenReturn(attribute);
+        when(attribute.getName()).thenReturn("id");
+        when(type.getJavaType()).thenReturn(Long.class);
+		observer.load(new MethodReady(methodGrandSon));
+		verify(request).setAttribute("grandSon", expectedEntity);
 	}
 
 	@Test
@@ -213,6 +288,17 @@ public class ParameterLoaderTest {
         @Id Long otherIdName;
     }
     
+    @MappedSuperclass static class MappedSuperClass {
+		@Id Long id;
+	}
+	static class Child extends MappedSuperClass {
+	}
+
+	static class Son extends Entity {
+	}
+	static class GrandSon extends Son {
+	}
+    
     static class Resource {
         public void method(@Load Entity entity) {
         }
@@ -222,6 +308,14 @@ public class ParameterLoaderTest {
         }
         public void methodOtherIdName(@Load EntityOtherIdName entity) {
         }
+        public void methodMappedSuperClass(@Load MappedSuperClass mappedSuperClass) {
+		}
+		public void methodChild(@Load Child child) {
+		}
+		public void methodSon(@Load Son son) {
+		}
+		public void methodGrandSon(@Load GrandSon grandSon) {
+		}
         public void methodWithoutLoad() {
         }
     }
