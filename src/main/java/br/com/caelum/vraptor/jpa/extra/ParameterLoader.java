@@ -74,11 +74,11 @@ public class ParameterLoader {
 	}
 
 	public void load(@Observes MethodReady event){
-		
+
 		ControllerMethod method = event.getControllerMethod();
-		
+
 		if (!containsLoadAnnotation(method)) return;
-		
+
 		Annotation[][] annotations = method.getMethod().getParameterAnnotations();
 
 		Parameter[] parameters = provider.parametersFor(method.getMethod());
@@ -113,7 +113,7 @@ public class ParameterLoader {
 		if (parameter == null) {
 			return null;
 		}
-		
+
 		br.com.caelum.vraptor.converter.Converter<?> converter = converters.to(idProperty.getType().getJavaType());
 		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idProperty.getType());
 
@@ -132,7 +132,7 @@ public class ParameterLoader {
 			}
 		};
 	}
-	
+
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <T> SingularAttribute<?, ?> getIdProperty(final Class type) {
 		IdentifiableType entity = em.getMetamodel().entity(type);
