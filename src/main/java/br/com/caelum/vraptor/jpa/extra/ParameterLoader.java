@@ -26,7 +26,7 @@ import java.lang.annotation.Annotation;
 
 import javax.enterprise.event.Observes;
 import javax.persistence.EntityManager;
-import javax.persistence.metamodel.EntityType;
+import javax.persistence.metamodel.IdentifiableType;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
 import javax.servlet.http.HttpServletRequest;
@@ -74,11 +74,11 @@ public class ParameterLoader {
 	}
 
 	public void load(@Observes MethodReady event){
-		
+
 		ControllerMethod method = event.getControllerMethod();
-		
+
 		if (!containsLoadAnnotation(method)) return;
-		
+
 		Annotation[][] annotations = method.getMethod().getParameterAnnotations();
 
 		Parameter[] parameters = provider.parametersFor(method.getMethod());
@@ -107,19 +107,15 @@ public class ParameterLoader {
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <T> Object load(String name, Class type) {
-		EntityType<T> entity = em.getMetamodel().entity(type);
-		
-		Type<?> idType = entity.getIdType();
-		checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
-		
-		SingularAttribute idProperty = entity.getDeclaredId(idType.getJavaType());
-		String parameter = request.getParameter(name + "." + idProperty.getName());
+		final SingularAttribute<?, ?> idProperty = getIdProperty(type);
+
+		final String parameter = request.getParameter(name + "." + idProperty.getName());
 		if (parameter == null) {
 			return null;
 		}
-		
-		br.com.caelum.vraptor.converter.Converter<?> converter = converters.to(idType.getJavaType());
-		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idType);
+
+		br.com.caelum.vraptor.converter.Converter<?> converter = converters.to(idProperty.getType().getJavaType());
+		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idProperty.getType());
 
 		Serializable id = (Serializable) converter.convert(parameter, type);
 		return em.find(type, id);
@@ -135,5 +131,23 @@ public class ParameterLoader {
 				return any(asList(param), instanceOf(annotation));
 			}
 		};
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private <T> SingularAttribute<?, ?> getIdProperty(final Class type) {
+		IdentifiableType entity = em.getMetamodel().entity(type);
+
+		Type<?> idType = entity.getIdType();
+		checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
+
+		if (hasSupertype(entity)) {
+			entity = entity.getSupertype();
+		}
+
+		return entity.getDeclaredId(idType.getJavaType());
+	}
+
+	private <T> boolean hasSupertype(IdentifiableType<? super T> entity) {
+		return entity.getSupertype() != null;
 	}
 }
