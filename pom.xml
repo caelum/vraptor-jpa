@@ -3,7 +3,7 @@
 
 	<groupId>br.com.caelum.vraptor</groupId>
 	<artifactId>vraptor-jpa</artifactId>
-	<version>4.0.0-RC3-SNAPSHOT</version>
+	<version>4.0.0.Final</version>
 	<packaging>jar</packaging>
 
 	<name>vraptor-jpa</name>
@@ -90,7 +90,7 @@
 		<dependency>
 			<groupId>br.com.caelum</groupId>
 			<artifactId>vraptor</artifactId>
-			<version>4.0.0-RC2</version>
+			<version>4.0.0.Final</version>
 			<scope>compile</scope>
 		</dependency>
 
