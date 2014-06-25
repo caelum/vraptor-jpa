@@ -29,7 +29,7 @@ public class JPATransactionInterceptorTest {
 	@Mock private Validator validator;
 	@Mock private MutableResponse response;
 	
-	private JPATransactionInterceptor interceptor;
+	private JPAInterceptor interceptor;
 
     @Before
     public void setUp() {

@@ -34,7 +34,7 @@ import br.com.caelum.vraptor.validator.Validator;
  * @author Lucas Cavalcanti
  */
 @Intercepts
-public class JPATransactionInterceptor {
+public class JPATransactionInterceptor implements JPAInterceptor {
 
 	private final EntityManager manager;
 	private final Validator validator;
