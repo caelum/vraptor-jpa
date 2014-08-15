@@ -16,13 +16,8 @@
 package br.com.caelum.vraptor.jpa.extra;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.instanceOf;
-import static com.google.common.collect.Iterables.any;
-import static com.google.common.collect.Iterables.isEmpty;
-import static java.util.Arrays.asList;
 
 import java.io.Serializable;
-import java.lang.annotation.Annotation;
 
 import javax.enterprise.event.Observes;
 import javax.persistence.EntityManager;
@@ -33,14 +28,12 @@ import javax.servlet.http.HttpServletRequest;
 
 import br.com.caelum.vraptor.Result;
 import br.com.caelum.vraptor.controller.ControllerMethod;
+import br.com.caelum.vraptor.converter.Converter;
 import br.com.caelum.vraptor.core.Converters;
 import br.com.caelum.vraptor.events.MethodReady;
 import br.com.caelum.vraptor.http.Parameter;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
 import br.com.caelum.vraptor.view.FlashScope;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 
 /**
  * Observer that loads given entity from the database.
@@ -69,26 +62,15 @@ public class ParameterLoader {
 		this.flash = flash;
 	}
 
-	public boolean containsLoadAnnotation(ControllerMethod method) {
-		return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
-	}
-
-	public void load(@Observes MethodReady event){
-
+	public void load(@Observes MethodReady event) {
 		ControllerMethod method = event.getControllerMethod();
-
-		if (!containsLoadAnnotation(method)) return;
-
-		Annotation[][] annotations = method.getMethod().getParameterAnnotations();
-
-		Parameter[] parameters = provider.parametersFor(method.getMethod());
-		Class<?>[] types = method.getMethod().getParameterTypes();
-
 		Object[] args = flash.consumeParameters(method);
+		Parameter[] parameters = provider.parametersFor(method.getMethod());
 
 		for (int i = 0; i < parameters.length; i++) {
-			if (hasLoadAnnotation(annotations[i])) {
-				Object loaded = load(parameters[i].getName(), types[i]);
+			Parameter parameter = parameters[i];
+			if (parameter.isAnnotationPresent(Load.class)) {
+				Object loaded = load(parameter.getName(), parameter.getType());
 
 				if (loaded == null) {
 					result.notFound();
@@ -98,7 +80,7 @@ public class ParameterLoader {
 				if (args != null) {
 					args[i] = loaded;
 				} else {
-					request.setAttribute(parameters[i].getName(), loaded);
+					request.setAttribute(parameter.getName(), loaded);
 				}
 			}
 		}
@@ -114,23 +96,11 @@ public class ParameterLoader {
 			return null;
 		}
 
-		br.com.caelum.vraptor.converter.Converter<?> converter = converters.to(idProperty.getType().getJavaType());
+		Converter<?> converter = converters.to(idProperty.getType().getJavaType());
 		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idProperty.getType());
 
 		Serializable id = (Serializable) converter.convert(parameter, type);
 		return em.find(type, id);
-	}
-
-	private boolean hasLoadAnnotation(Annotation[] annotation) {
-		return !isEmpty(Iterables.filter(asList(annotation), Load.class));
-	}
-
-	public static Predicate<Annotation[]> hasAnnotation(final Class<?> annotation) {
-		return new Predicate<Annotation[]>() {
-			public boolean apply(Annotation[] param) {
-				return any(asList(param), instanceOf(annotation));
-			}
-		};
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })

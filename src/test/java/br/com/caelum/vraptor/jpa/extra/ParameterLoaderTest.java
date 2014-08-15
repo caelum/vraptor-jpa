@@ -1,9 +1,7 @@
 package br.com.caelum.vraptor.jpa.extra;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -85,16 +83,6 @@ public class ParameterLoaderTest {
 		when(metamodel.entity(any(Class.class))).thenReturn(entityType);
 		when(entityType.getIdType()).thenReturn(type);
 		when(attribute.getType()).thenReturn(type);
-	}
-
-	@Test
-	public void shouldAcceptsIfHasLoadAnnotation() {
-		assertTrue(observer.containsLoadAnnotation(method));
-	}
-
-	@Test
-	public void shouldNotAcceptIfHasNoLoadAnnotation() {
-		assertFalse(observer.containsLoadAnnotation(methodWithoutLoad));
 	}
 
 	@Test
