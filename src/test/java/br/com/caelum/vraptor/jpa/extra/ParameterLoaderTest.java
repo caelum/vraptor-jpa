@@ -31,7 +31,7 @@ import br.com.caelum.vraptor.controller.DefaultControllerMethod;
 import br.com.caelum.vraptor.converter.LongConverter;
 import br.com.caelum.vraptor.converter.StringConverter;
 import br.com.caelum.vraptor.core.Converters;
-import br.com.caelum.vraptor.events.MethodReady;
+import br.com.caelum.vraptor.events.ControllerFound;
 import br.com.caelum.vraptor.http.Parameter;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
 import br.com.caelum.vraptor.view.FlashScope;
@@ -51,7 +51,7 @@ public class ParameterLoaderTest {
 	private @Mock SingularAttribute attribute;
 	private @Mock MappedSuperclassType mappedSuperclassType;
 
-	private ParameterLoader observer;
+    private ParameterLoader parameterLoader;
 	private ControllerMethod method;
 	private ControllerMethod methodOtherIdName;
 	private ControllerMethod other;
@@ -65,7 +65,7 @@ public class ParameterLoaderTest {
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
-		observer = new ParameterLoader(em, request, provider, result, converters, flash);
+		parameterLoader = new ParameterLoader(em, request, provider, result, converters, flash);
 		method = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("method", Entity.class));
 		methodWithoutLoad = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodWithoutLoad"));
 		methodOtherIdName = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodOtherIdName", EntityOtherIdName.class));
@@ -88,15 +88,18 @@ public class ParameterLoaderTest {
 	@Test
 	@SuppressWarnings({ "unchecked" })
 	public void shouldLoadEntityUsingId() throws Exception {
-		Parameter parameter = new Parameter(0, "entity", methodOtherIdName.getMethod());
+		Parameter parameter = new Parameter(0, "entity", method.getMethod());
 		when(provider.parametersFor(method.getMethod())).thenReturn(new Parameter[]{parameter});
 		when(request.getParameter("entity.id")).thenReturn("123");
+
 		Entity expectedEntity = new Entity();
 		when(em.find(Entity.class, 123L)).thenReturn(expectedEntity);
 		when(entityType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
-		observer.load(new MethodReady(method));
+
+		parameterLoader.load(new ControllerFound(method));
+
 		verify(request).setAttribute("entity", expectedEntity);
 	}
 
@@ -105,28 +108,32 @@ public class ParameterLoaderTest {
 		Parameter parameter = new Parameter(0, "entity", methodOtherIdName.getMethod());
 		when(provider.parametersFor(methodOtherIdName.getMethod())).thenReturn(new Parameter[]{parameter});
 		when(request.getParameter("entity.otherIdName")).thenReturn("456");
+
 		EntityOtherIdName expectedEntity = new EntityOtherIdName();
 		when(em.find(EntityOtherIdName.class, 456L)).thenReturn(expectedEntity);
 		when(entityType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("otherIdName");
 		when(type.getJavaType()).thenReturn(Long.class);
-		observer.load(new MethodReady(methodOtherIdName));
+
+		parameterLoader.load(new ControllerFound(methodOtherIdName));
+
 		verify(request).setAttribute("entity", expectedEntity);
 	}
 
 	@Test
 	public void shouldLoadEntityUsingIdOfAnyType() throws Exception {
-		Parameter parameter0 = new Parameter(0, "entity", methodOtherIdName.getMethod());
-		Parameter parameter1 = new Parameter(0, "ignored", methodOtherIdName.getMethod());
-		when(provider.parametersFor(other.getMethod())).thenReturn(new Parameter[]{parameter0, parameter1});
+		Parameter parameter0 = new Parameter(0, "entity", other.getMethod());
+		when(provider.parametersFor(other.getMethod())).thenReturn(new Parameter[] { parameter0 });
 		when(request.getParameter("entity.id")).thenReturn("123");
-		when(request.getParameter("ignored")).thenReturn("bar");
+
 		OtherEntity expectedEntity = new OtherEntity();
 		when(em.find(OtherEntity.class, "123")).thenReturn(expectedEntity);
 		when(entityType.getDeclaredId(String.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(String.class);
-		observer.load(new MethodReady(other));
+
+		parameterLoader.load(new ControllerFound(other));
+
 		verify(request).setAttribute("entity", expectedEntity);
 	}
 
@@ -136,12 +143,15 @@ public class ParameterLoaderTest {
 		Parameter parameter = new Parameter(0, "mappedSuperClass", methodMappedSuperClass.getMethod());
 		when(provider.parametersFor(methodMappedSuperClass.getMethod())).thenReturn(new Parameter[]{parameter});
 		when(request.getParameter("mappedSuperClass.id")).thenReturn("123");
+
 		MappedSuperClass expectedEntity = new MappedSuperClass();
 		when(em.find(MappedSuperClass.class, 123L)).thenReturn(expectedEntity);
 		when(entityType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
-		observer.load(new MethodReady(methodMappedSuperClass));
+
+		parameterLoader.load(new ControllerFound(methodMappedSuperClass));
+
 		verify(request).setAttribute("mappedSuperClass", expectedEntity);
 	}
 
@@ -151,13 +161,16 @@ public class ParameterLoaderTest {
 		Parameter parameter = new Parameter(0, "child", methodChild.getMethod());
 		when(provider.parametersFor(methodChild.getMethod())).thenReturn(new Parameter[]{parameter});
 		when(request.getParameter("child.id")).thenReturn("123");
+
 		Child expectedEntity = new Child();
 		when(em.find(Child.class, 123L)).thenReturn(expectedEntity);
 		when(entityType.getSupertype()).thenReturn(mappedSuperclassType);
 		when(mappedSuperclassType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
-		observer.load(new MethodReady(methodChild));
+
+		parameterLoader.load(new ControllerFound(methodChild));
+
 		verify(request).setAttribute("child", expectedEntity);
 	}
 
@@ -167,13 +180,16 @@ public class ParameterLoaderTest {
 		Parameter parameter = new Parameter(0, "son", methodSon.getMethod());
 		when(provider.parametersFor(methodSon.getMethod())).thenReturn(new Parameter[]{parameter});
 		when(request.getParameter("son.id")).thenReturn("123");
+
 		Son expectedEntity = new Son();
 		when(em.find(Son.class, 123L)).thenReturn(expectedEntity);
 		when(entityType.getSupertype()).thenReturn(mappedSuperclassType);
 		when(mappedSuperclassType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
-		observer.load(new MethodReady(methodSon));
+
+		parameterLoader.load(new ControllerFound(methodSon));
+
 		verify(request).setAttribute("son", expectedEntity);
 	}
 
@@ -183,13 +199,16 @@ public class ParameterLoaderTest {
 		Parameter parameter = new Parameter(0, "grandSon", methodGrandSon.getMethod());
 		when(provider.parametersFor(methodGrandSon.getMethod())).thenReturn(new Parameter[]{parameter});
 		when(request.getParameter("grandSon.id")).thenReturn("123");
+
 		GrandSon expectedEntity = new GrandSon();
 		when(em.find(GrandSon.class, 123L)).thenReturn(expectedEntity);
 		when(entityType.getSupertype()).thenReturn(mappedSuperclassType);
 		when(mappedSuperclassType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
-		observer.load(new MethodReady(methodGrandSon));
+
+		parameterLoader.load(new ControllerFound(methodGrandSon));
+
 		verify(request).setAttribute("grandSon", expectedEntity);
 	}
 
@@ -198,6 +217,7 @@ public class ParameterLoaderTest {
 		Parameter parameter = new Parameter(0, "entity", method.getMethod());
 		when(provider.parametersFor(method.getMethod())).thenReturn(new Parameter[]{parameter});
 		when(request.getParameter("entity.id")).thenReturn("123");
+
 		Object[] args = {new Entity()};
 		when(entityType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
@@ -205,7 +225,9 @@ public class ParameterLoaderTest {
 		when(flash.consumeParameters(method)).thenReturn(args);
 		Entity expectedEntity = new Entity();
 		when(em.find(Entity.class, 123l)).thenReturn(expectedEntity);
-		observer.load(new MethodReady(method));
+
+		parameterLoader.load(new ControllerFound(method));
+
 		assertThat(args[0], is((Object) expectedEntity));
 		verify(flash).includeParameters(method, args);
 	}
@@ -218,7 +240,9 @@ public class ParameterLoaderTest {
 		when(entityType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
-		observer.load(new MethodReady(method));
+
+		parameterLoader.load(new ControllerFound(method));
+
 		verify(request, never()).setAttribute(eq("entity"), any());
 		verify(result).notFound();
 	}
@@ -232,7 +256,9 @@ public class ParameterLoaderTest {
 		when(entityType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
-		observer.load(new MethodReady(method));
+
+		parameterLoader.load(new ControllerFound(method));
+
 		verify(request, never()).setAttribute(eq("entity"), any());
 		verify(result).notFound();
 	}
@@ -245,7 +271,8 @@ public class ParameterLoaderTest {
 		when(entityType.getIdType()).thenReturn(null);
 		fail().when(request).setAttribute(eq("entity"), any());
 		fail().when(result).notFound();
-		observer.load(new MethodReady(noId));
+
+		parameterLoader.load(new ControllerFound(noId));
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -259,7 +286,8 @@ public class ParameterLoaderTest {
 		when(type.getJavaType()).thenReturn(Long.class);
 		fail().when(request).setAttribute(eq("entity"), any());
 		fail().when(result).notFound();
-		observer.load(new MethodReady(method));
+
+		parameterLoader.load(new ControllerFound(method));
 	}
 
 
