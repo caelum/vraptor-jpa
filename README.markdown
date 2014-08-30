@@ -1,5 +1,7 @@
 ## vraptor-jpa
 
+![Build status](https://secure.travis-ci.org/caelum/vraptor-jpa.png)
+
 A VRaptor JPA plugin to use with VRaptor 4 with environment support.
 
 # Installing
