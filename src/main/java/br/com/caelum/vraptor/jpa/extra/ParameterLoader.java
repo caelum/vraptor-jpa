@@ -30,7 +30,7 @@ import br.com.caelum.vraptor.Result;
 import br.com.caelum.vraptor.controller.ControllerMethod;
 import br.com.caelum.vraptor.converter.Converter;
 import br.com.caelum.vraptor.core.Converters;
-import br.com.caelum.vraptor.events.MethodReady;
+import br.com.caelum.vraptor.events.ControllerFound;
 import br.com.caelum.vraptor.http.Parameter;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
 import br.com.caelum.vraptor.view.FlashScope;
@@ -62,8 +62,8 @@ public class ParameterLoader {
 		this.flash = flash;
 	}
 
-	public void load(@Observes MethodReady event) {
-		ControllerMethod method = event.getControllerMethod();
+	public void load(@Observes ControllerFound event) {
+		ControllerMethod method = event.getMethod();
 		Object[] args = flash.consumeParameters(method);
 		Parameter[] parameters = provider.parametersFor(method.getMethod());
 
