@@ -51,7 +51,7 @@ public class ParameterLoaderTest {
 	private @Mock SingularAttribute attribute;
 	private @Mock MappedSuperclassType mappedSuperclassType;
 
-    private ParameterLoader parameterLoader;
+	private ParameterLoader parameterLoader;
 	private ControllerMethod method;
 	private ControllerMethod methodOtherIdName;
 	private ControllerMethod other;
