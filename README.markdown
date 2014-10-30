@@ -12,7 +12,7 @@ A VRaptor JPA plugin to use with VRaptor 4 with environment support.
 <dependency>
 	<groupId>br.com.caelum.vraptor</groupId>
 	<artifactId>vraptor-jpa</artifactId>
-	<version>4.0.0</version> <!-- or the latest version -->
+	<version>4.0.2</version> <!-- or the latest version -->
 </dependency>
 ```
 
