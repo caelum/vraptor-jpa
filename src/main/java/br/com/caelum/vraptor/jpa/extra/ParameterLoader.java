@@ -19,6 +19,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
 
+import javax.inject.Inject;
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.event.Observes;
 import javax.persistence.EntityManager;
@@ -57,7 +58,7 @@ public class ParameterLoader {
 	/**
 	 * @deprecated CDI eyes only
 	 */
-	public ParameterLoader() {
+	protected ParameterLoader() {
 		this(null, null, null, null, null, null);
 	}
 
