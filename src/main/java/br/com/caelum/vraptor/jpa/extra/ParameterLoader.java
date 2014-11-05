@@ -19,6 +19,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
 
+import javax.enterprise.context.RequestScoped;
 import javax.enterprise.event.Observes;
 import javax.persistence.EntityManager;
 import javax.persistence.metamodel.IdentifiableType;
@@ -43,6 +44,7 @@ import br.com.caelum.vraptor.view.FlashScope;
  * @author Otávio Scherer Garcia
  * @since 3.3.2
  */
+@RequestScoped
 public class ParameterLoader {
 
 	private final EntityManager em;
@@ -52,6 +54,14 @@ public class ParameterLoader {
 	private final Converters converters;
 	private final FlashScope flash;
 
+	/**
+	 * @deprecated CDI eyes only
+	 */
+	public ParameterLoader() {
+		this(null, null, null, null, null, null);
+	}
+
+	@Inject
 	public ParameterLoader(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
 			Result result, Converters converters, FlashScope flash) {
 		this.em = em;
