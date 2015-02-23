@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import javax.enterprise.inject.spi.BeanManager;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 
@@ -22,6 +23,7 @@ import br.com.caelum.vraptor.validator.Validator;
 
 public class JPATransactionInterceptorTest {
 
+	@Mock private BeanManager beanManager;
     @Mock private EntityManager entityManager;
     @Mock private SimpleInterceptorStack stack;
     @Mock private ControllerMethod method;
@@ -34,7 +36,7 @@ public class JPATransactionInterceptorTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        interceptor = new JPATransactionInterceptor(entityManager, validator, response);
+        interceptor = new JPATransactionInterceptor(beanManager, entityManager, validator, response);
     }
 
     @Test

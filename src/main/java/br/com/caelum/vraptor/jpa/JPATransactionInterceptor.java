@@ -16,6 +16,7 @@
  */
 package br.com.caelum.vraptor.jpa;
 
+import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
@@ -24,6 +25,9 @@ import br.com.caelum.vraptor.AroundCall;
 import br.com.caelum.vraptor.Intercepts;
 import br.com.caelum.vraptor.http.MutableResponse;
 import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
+import br.com.caelum.vraptor.jpa.event.AfterCommit;
+import br.com.caelum.vraptor.jpa.event.AfterRollback;
+import br.com.caelum.vraptor.jpa.event.BeforeCommit;
 import br.com.caelum.vraptor.validator.Validator;
 
 /**
@@ -36,6 +40,7 @@ import br.com.caelum.vraptor.validator.Validator;
 @Intercepts
 public class JPATransactionInterceptor implements JPAInterceptor {
 
+	private final BeanManager beanManager;
 	private final EntityManager manager;
 	private final Validator validator;
 	private final MutableResponse response;
@@ -44,11 +49,12 @@ public class JPATransactionInterceptor implements JPAInterceptor {
 	 * @deprecated CDI eyes only.
 	 */
 	protected JPATransactionInterceptor() {
-		this(null, null, null);
+		this(null, null, null, null);
 	}
 	
 	@Inject
-	public JPATransactionInterceptor(EntityManager manager, Validator validator, MutableResponse response) {
+	public JPATransactionInterceptor(BeanManager beanManager, EntityManager manager, Validator validator, MutableResponse response) {
+		this.beanManager = beanManager;
 		this.manager = manager;
 		this.validator = validator;
 		this.response = response;
@@ -71,13 +77,17 @@ public class JPATransactionInterceptor implements JPAInterceptor {
 		} finally {
 			if (transaction != null && transaction.isActive()) {
 				transaction.rollback();
+				beanManager.fireEvent(new AfterRollback());
 			}
 		}
 	}
 	
 	private void commit(EntityTransaction transaction) {
+		beanManager.fireEvent(new BeforeCommit());
+
 		if (!validator.hasErrors() && transaction.isActive()) {
 			transaction.commit();
+			beanManager.fireEvent(new AfterCommit());
 		}
 	}
 
