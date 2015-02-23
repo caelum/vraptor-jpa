@@ -24,19 +24,22 @@ import static java.util.Arrays.asList;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 
-import javax.enterprise.event.Observes;
 import javax.persistence.EntityManager;
 import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
 import javax.servlet.http.HttpServletRequest;
 
+import br.com.caelum.vraptor.Accepts;
+import br.com.caelum.vraptor.AroundCall;
+import br.com.caelum.vraptor.InterceptionException;
+import br.com.caelum.vraptor.Intercepts;
 import br.com.caelum.vraptor.Result;
 import br.com.caelum.vraptor.controller.ControllerMethod;
 import br.com.caelum.vraptor.core.Converters;
-import br.com.caelum.vraptor.events.ControllerMethodDiscovered;
 import br.com.caelum.vraptor.http.Parameter;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
+import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
 import br.com.caelum.vraptor.view.FlashScope;
 
 import com.google.common.base.Predicate;
@@ -50,6 +53,7 @@ import com.google.common.collect.Iterables;
  * @author Otávio Scherer Garcia
  * @since 3.3.2
  */
+@Intercepts
 public class ParameterLoader {
 
 	private final EntityManager em;
@@ -69,32 +73,29 @@ public class ParameterLoader {
 		this.flash = flash;
 	}
 
+	@Accepts
 	public boolean containsLoadAnnotation(ControllerMethod method) {
 		return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
 	}
-
-	public void load(@Observes ControllerMethodDiscovered event){
-		
-		ControllerMethod method = event.getControllerMethod();
-		
-		if (!containsLoadAnnotation(method)) return;
-		
+	
+	@AroundCall
+	public void intercept(SimpleInterceptorStack stack, ControllerMethod method) throws InterceptionException {
 		Annotation[][] annotations = method.getMethod().getParameterAnnotations();
 
 		Parameter[] parameters = provider.parametersFor(method.getMethod());
 		Class<?>[] types = method.getMethod().getParameterTypes();
 
 		Object[] args = flash.consumeParameters(method);
-
+		
 		for (int i = 0; i < parameters.length; i++) {
 			if (hasLoadAnnotation(annotations[i])) {
 				Object loaded = load(parameters[i].getName(), types[i]);
-
+				
 				if (loaded == null) {
 					result.notFound();
 					return;
 				}
-
+				
 				if (args != null) {
 					args[i] = loaded;
 				} else {
@@ -103,6 +104,8 @@ public class ParameterLoader {
 			}
 		}
 		flash.includeParameters(method, args);
+
+		stack.next();
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
