@@ -39,6 +39,7 @@ To do that you just need to add the follow content into your project's `beans.xm
 While the JPATransactionInterceptor worries about handling the transaction, you can observe CDI events to include some logic of yours.
 
 **Please, note that if you specializes or override the JPATransactionInterceptor, those events won't be fired.**
+
 *Remember that CDI Events doesn't have an order when executing observers, so, when observing the same event in more than one method, they should be independents.*
 
 The events are:
