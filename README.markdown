@@ -34,6 +34,36 @@ To do that you just need to add the follow content into your project's `beans.xm
 </decorators>
 ```
 
+# CDI Events
+
+While the JPATransactionInterceptor worries about handling the transaction, you can observe CDI events to include some logic of yours.
+
+**Please, note that if you specializes or override the JPATransactionInterceptor, those events won't be fired.**
+*Remember that CDI Events doesn't have an order when executing observers, so, when observing the same event in more than one method, they should be independents.*
+
+The events are:
+* Before trying to commit the transaction: `BeforeCommit`;
+* After successfully committing the transaction: `AfterCommit`;
+* After successfully rolling back (rollback) the transaction: `AfterRollback`;
+
+```Java
+import javax.enterprise.event.Observes;
+
+import br.com.caelum.vraptor.jpa.event.BeforeCommit;
+import br.com.caelum.vraptor.jpa.event.AfterCommit;
+import br.com.caelum.vraptor.jpa.event.AfterRollback;
+
+public class JPATransactionEventsObserver {
+	/* You can @Inject any dependencies here. */
+
+	public void beforeCommit(@Observes BeforeCommit before) {/* ... */}
+
+	public void afterCommit(@Observes AfterCommit after) {/* ... */}
+
+	public void afterRollback(@Observes AfterRollback after) {/* ... */}
+}
+```
+
 # Help
 
 Get help from vraptor developers and the community at VRaptor's mailing list.
