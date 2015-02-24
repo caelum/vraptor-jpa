@@ -83,7 +83,8 @@ public class JPATransactionInterceptor implements JPAInterceptor {
 	}
 	
 	private void commit(EntityTransaction transaction) {
-		beanManager.fireEvent(new BeforeCommit());
+		if (transaction.isActive())
+			beanManager.fireEvent(new BeforeCommit());
 
 		if (!validator.hasErrors() && transaction.isActive()) {
 			transaction.commit();
