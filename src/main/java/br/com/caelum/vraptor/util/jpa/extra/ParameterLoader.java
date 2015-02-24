@@ -62,24 +62,26 @@ public class ParameterLoader {
 	private final Result result;
 	private final Converters converters;
 	private final FlashScope flash;
+	private final ControllerMethod method;
 
 	public ParameterLoader(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
-			Result result, Converters converters, FlashScope flash) {
+			Result result, Converters converters, FlashScope flash, ControllerMethod method) {
 		this.em = em;
 		this.request = request;
 		this.provider = provider;
 		this.result = result;
 		this.converters = converters;
 		this.flash = flash;
+		this.method = method;
 	}
 
 	@Accepts
-	public boolean containsLoadAnnotation(ControllerMethod method) {
+	public boolean containsLoadAnnotation() {
 		return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
 	}
 	
 	@AroundCall
-	public void intercept(SimpleInterceptorStack stack, ControllerMethod method) throws InterceptionException {
+	public void intercept(SimpleInterceptorStack stack) throws InterceptionException {
 		Annotation[][] annotations = method.getMethod().getParameterAnnotations();
 
 		Parameter[] parameters = provider.parametersFor(method.getMethod());
