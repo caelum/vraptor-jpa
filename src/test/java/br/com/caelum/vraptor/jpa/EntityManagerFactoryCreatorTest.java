@@ -1,4 +1,4 @@
-package br.com.caelum.vraptor.util.jpa;
+package br.com.caelum.vraptor.jpa;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doReturn;

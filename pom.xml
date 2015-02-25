@@ -3,7 +3,7 @@
 
 	<groupId>br.com.caelum.vraptor</groupId>
 	<artifactId>vraptor-jpa</artifactId>
-	<version>4.0.1-SNAPSHOT</version>
+	<version>4.0.4-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>vraptor-jpa</name>
@@ -43,6 +43,15 @@
 			<timezone>-3</timezone>
 		</developer>
 		<developer>
+                        <id>Turini</id>
+                        <name>Rodrigo Turini</name>
+                        <email>rodrigo.turini@caelum.com.br</email>
+                        <roles>
+                                <role>developer</role>
+                        </roles>
+                        <timezone>-3</timezone>
+                </developer>
+		<developer>
 			<id>garcia-jj</id>
 			<name>Otávio Garcia</name>
 			<email>otavio@otavio.com.br</email>
@@ -74,21 +83,23 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.eclipse.persistence</groupId>
-			<artifactId>javax.persistence</artifactId>
-			<version>2.0.0</version>
+			<groupId>org.hibernate.javax.persistence</groupId>
+			<artifactId>hibernate-jpa-2.1-api</artifactId>
+			<version>1.0.0.Final</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>javax.enterprise</groupId>
 			<artifactId>cdi-api</artifactId>
 			<version>1.1</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>br.com.caelum</groupId>
 			<artifactId>vraptor</artifactId>
-			<version>4.0.0-beta-4</version>
+			<version>4.1.1</version>
 			<scope>compile</scope>
 		</dependency>
 

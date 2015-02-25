@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package br.com.caelum.vraptor.util.jpa.extra;
+package br.com.caelum.vraptor.jpa.extra;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.instanceOf;
@@ -24,11 +24,16 @@ import static java.util.Arrays.asList;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 
+import javax.inject.Inject;
+import javax.enterprise.context.RequestScoped;
 import javax.persistence.EntityManager;
-import javax.persistence.metamodel.EntityType;
+import javax.persistence.metamodel.IdentifiableType;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
 import javax.servlet.http.HttpServletRequest;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 import br.com.caelum.vraptor.Accepts;
 import br.com.caelum.vraptor.AroundCall;
@@ -36,14 +41,12 @@ import br.com.caelum.vraptor.InterceptionException;
 import br.com.caelum.vraptor.Intercepts;
 import br.com.caelum.vraptor.Result;
 import br.com.caelum.vraptor.controller.ControllerMethod;
+import br.com.caelum.vraptor.converter.Converter;
 import br.com.caelum.vraptor.core.Converters;
 import br.com.caelum.vraptor.http.Parameter;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
 import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
 import br.com.caelum.vraptor.view.FlashScope;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 
 /**
  * Observer that loads given entity from the database.
@@ -54,6 +57,7 @@ import com.google.common.collect.Iterables;
  * @since 3.3.2
  */
 @Intercepts
+@RequestScoped
 public class ParameterLoader {
 
 	private final EntityManager em;
@@ -64,6 +68,14 @@ public class ParameterLoader {
 	private final FlashScope flash;
 	private final ControllerMethod method;
 
+	/**
+	 * @deprecated CDI eyes only
+	 */
+	protected ParameterLoader() {
+		this(null, null, null, null, null, null, null);
+	}
+
+	@Inject
 	public ParameterLoader(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
 			Result result, Converters converters, FlashScope flash, ControllerMethod method) {
 		this.em = em;
@@ -91,7 +103,8 @@ public class ParameterLoader {
 		
 		for (int i = 0; i < parameters.length; i++) {
 			if (hasLoadAnnotation(annotations[i])) {
-				Object loaded = load(parameters[i].getName(), types[i]);
+				Parameter parameter = parameters[i];
+				Object loaded = load(parameter.getName(), types[i]);
 				
 				if (loaded == null) {
 					result.notFound();
@@ -101,7 +114,7 @@ public class ParameterLoader {
 				if (args != null) {
 					args[i] = loaded;
 				} else {
-					request.setAttribute(parameters[i].getName(), loaded);
+					request.setAttribute(parameter.getName(), loaded);
 				}
 			}
 		}
@@ -112,24 +125,38 @@ public class ParameterLoader {
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <T> Object load(String name, Class type) {
-		EntityType<T> entity = em.getMetamodel().entity(type);
-		
-		Type<?> idType = entity.getIdType();
-		checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
-		
-		SingularAttribute idProperty = entity.getDeclaredId(idType.getJavaType());
-		String parameter = request.getParameter(name + "." + idProperty.getName());
+		final SingularAttribute<?, ?> idProperty = getIdProperty(type);
+
+		final String parameter = request.getParameter(name + "." + idProperty.getName());
 		if (parameter == null) {
 			return null;
 		}
-		
-		br.com.caelum.vraptor.converter.Converter<?> converter = converters.to(idType.getJavaType());
-		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idType);
+
+		Converter<?> converter = converters.to(idProperty.getType().getJavaType());
+		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idProperty.getType());
 
 		Serializable id = (Serializable) converter.convert(parameter, type);
 		return em.find(type, id);
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private <T> SingularAttribute<?, ?> getIdProperty(final Class type) {
+		IdentifiableType entity = em.getMetamodel().entity(type);
+
+		Type<?> idType = entity.getIdType();
+		checkArgument(idType != null, "Entity %s must have an id property for @Load.", type.getSimpleName());
+
+		if (hasSupertype(entity)) {
+			entity = entity.getSupertype();
+		}
+
+		return entity.getDeclaredId(idType.getJavaType());
+	}
+
+	private <T> boolean hasSupertype(IdentifiableType<? super T> entity) {
+		return entity.getSupertype() != null;
+	}
+	
 	private boolean hasLoadAnnotation(Annotation[] annotation) {
 		return !isEmpty(Iterables.filter(asList(annotation), Load.class));
 	}
