@@ -2,3 +2,7 @@
 .classpath
 .settings
 target
+
+.DS_Store
+
+bin/
