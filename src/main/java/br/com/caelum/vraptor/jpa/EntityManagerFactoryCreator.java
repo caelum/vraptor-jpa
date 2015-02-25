@@ -36,11 +36,22 @@ import br.com.caelum.vraptor.environment.Environment;
  */
 public class EntityManagerFactoryCreator {
 
-	@Inject
 	private Environment environment;
-	@Inject
-	private Map<String, String> propertiesOfJPAConnection;
+	private final Map<String, String> propertiesOfJPAConnection;
+	
+	/**
+	 * @deprecated CDI eyes only.
+	 */
+	public EntityManagerFactoryCreator() {
+		this(null, null);
+	}
 
+	@Inject
+	public EntityManagerFactoryCreator(Environment environment, Map<String, String> propertiesOfJPAConnection) {
+		this.environment = environment;
+		this.propertiesOfJPAConnection = propertiesOfJPAConnection;
+	}
+	
 	/**
 	 * Produces the factory that will create EntityManager. If none
 	 * propertiesOfJPAConnection is inserted, will be created an default connect
