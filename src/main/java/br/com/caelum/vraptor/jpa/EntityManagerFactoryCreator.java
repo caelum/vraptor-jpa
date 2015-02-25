@@ -16,6 +16,8 @@
  */
 package br.com.caelum.vraptor.jpa;
 
+import java.util.Map;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
@@ -33,15 +35,30 @@ import br.com.caelum.vraptor.environment.Environment;
  * @author Otávio Garcia
  */
 public class EntityManagerFactoryCreator {
-	
-	@Inject 
-	private Environment environment;
 
+	@Inject
+	private Environment environment;
+	@Inject
+	private Map<String, String> propertiesOfJPAConnection;
+
+	/**
+	 * Produces the factory that will create EntityManager. If none
+	 * propertiesOfJPAConnection is inserted, will be created an default connect
+	 * based in configurations of the persistence.xml. However, if a setting is
+	 * entered, the connection is created programmatically, overriding the
+	 * default settings.
+	 * 
+	 * @return the EntityManagerFactory that will create all Entity managers
+	 */
 	@ApplicationScoped
 	@Produces
 	public EntityManagerFactory getEntityManagerFactory() {
-		String persistenceUnit = environment.get("br.com.caelum.vraptor.jpa.persistenceunit", "default");
-		return Persistence.createEntityManagerFactory(persistenceUnit);
+		if (propertiesOfJPAConnection.isEmpty()) {
+			String persistenceUnit = environment.get("br.com.caelum.vraptor.jpa.persistenceunit", "default");
+			return Persistence.createEntityManagerFactory(persistenceUnit);
+		} else {
+			return Persistence.createEntityManagerFactory("default", propertiesOfJPAConnection);
+		}
 	}
 
 	public void destroy(@Disposes EntityManagerFactory factory) {
