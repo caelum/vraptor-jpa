@@ -22,12 +22,9 @@ import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
 import javax.servlet.http.HttpServletRequest;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.stubbing.Stubber;
 
@@ -37,11 +34,10 @@ import br.com.caelum.vraptor.controller.DefaultControllerMethod;
 import br.com.caelum.vraptor.converter.LongConverter;
 import br.com.caelum.vraptor.converter.StringConverter;
 import br.com.caelum.vraptor.core.Converters;
-import br.com.caelum.vraptor.events.ControllerFound;
+import br.com.caelum.vraptor.core.MethodInfo;
 import br.com.caelum.vraptor.http.Parameter;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
 import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
-import br.com.caelum.vraptor.view.FlashScope;
 
 public class ParameterLoaderTest {
 
@@ -50,7 +46,7 @@ public class ParameterLoaderTest {
 	private @Mock ParameterNameProvider provider;
 	private @Mock Result result;
 	private @Mock Converters converters;
-	private @Mock FlashScope flash;
+	private @Mock MethodInfo methodInfo;
 
 	private @Mock Metamodel metamodel;
 	private @Mock EntityType entityType;
@@ -92,7 +88,7 @@ public class ParameterLoaderTest {
 	}
 
 	public ParameterLoader buildInterceptorUsing(ControllerMethod method) {
-		return new ParameterLoader(em, request, provider, result, converters, flash, method);
+		return new ParameterLoader(em, request, provider, result, converters, methodInfo, method);
 	}
 
 	@Test
@@ -240,7 +236,7 @@ public class ParameterLoaderTest {
 	}
 
 	@Test
-	public void shouldOverrideFlashScopedArgsIfAny() throws Exception {
+	public void shouldOverrideMethodInfoArgsIfAny() throws Exception {
 		Parameter parameter = new Parameter(0, "entity", method.getMethod());
 		when(provider.parametersFor(method.getMethod())).thenReturn(new Parameter[]{parameter});
 		when(request.getParameter("entity.id")).thenReturn("123");
@@ -249,14 +245,14 @@ public class ParameterLoaderTest {
 		when(entityType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
-		when(flash.consumeParameters(method)).thenReturn(args);
+		when(methodInfo.getParametersValues()).thenReturn(args);
 		Entity expectedEntity = new Entity();
 		when(em.find(Entity.class, 123l)).thenReturn(expectedEntity);
 
 		buildInterceptorUsing(method).intercept(stack);
 
 		assertThat(args[0], is((Object) expectedEntity));
-		verify(flash).includeParameters(method, args);
+		verify(methodInfo).setParameter(0, args[0]);
 		verify(stack, times(1)).next();
 	}
 

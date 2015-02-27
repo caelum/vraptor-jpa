@@ -24,16 +24,13 @@ import static java.util.Arrays.asList;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 
-import javax.inject.Inject;
 import javax.enterprise.context.RequestScoped;
+import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.metamodel.IdentifiableType;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.persistence.metamodel.Type;
 import javax.servlet.http.HttpServletRequest;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 
 import br.com.caelum.vraptor.Accepts;
 import br.com.caelum.vraptor.AroundCall;
@@ -43,10 +40,13 @@ import br.com.caelum.vraptor.Result;
 import br.com.caelum.vraptor.controller.ControllerMethod;
 import br.com.caelum.vraptor.converter.Converter;
 import br.com.caelum.vraptor.core.Converters;
+import br.com.caelum.vraptor.core.MethodInfo;
 import br.com.caelum.vraptor.http.Parameter;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
 import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
-import br.com.caelum.vraptor.view.FlashScope;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 /**
  * Observer that loads given entity from the database.
@@ -65,7 +65,7 @@ public class ParameterLoader {
 	private final ParameterNameProvider provider;
 	private final Result result;
 	private final Converters converters;
-	private final FlashScope flash;
+	private final MethodInfo methodInfo;
 	private final ControllerMethod method;
 
 	/**
@@ -76,14 +76,14 @@ public class ParameterLoader {
 	}
 
 	@Inject
-	public ParameterLoader(EntityManager em, HttpServletRequest request, ParameterNameProvider provider,
-			Result result, Converters converters, FlashScope flash, ControllerMethod method) {
+	public ParameterLoader(EntityManager em, HttpServletRequest request, ParameterNameProvider provider, Result result,
+			Converters converters, MethodInfo methodInfo, ControllerMethod method) {
 		this.em = em;
 		this.request = request;
 		this.provider = provider;
 		this.result = result;
 		this.converters = converters;
-		this.flash = flash;
+		this.methodInfo = methodInfo;
 		this.method = method;
 	}
 
@@ -91,7 +91,7 @@ public class ParameterLoader {
 	public boolean containsLoadAnnotation() {
 		return any(asList(method.getMethod().getParameterAnnotations()), hasAnnotation(Load.class));
 	}
-	
+
 	@AroundCall
 	public void intercept(SimpleInterceptorStack stack) throws InterceptionException {
 		Annotation[][] annotations = method.getMethod().getParameterAnnotations();
@@ -99,18 +99,18 @@ public class ParameterLoader {
 		Parameter[] parameters = provider.parametersFor(method.getMethod());
 		Class<?>[] types = method.getMethod().getParameterTypes();
 
-		Object[] args = flash.consumeParameters(method);
-		
+		Object[] args = methodInfo.getParametersValues();
+
 		for (int i = 0; i < parameters.length; i++) {
 			if (hasLoadAnnotation(annotations[i])) {
 				Parameter parameter = parameters[i];
 				Object loaded = load(parameter.getName(), types[i]);
-				
+
 				if (loaded == null) {
 					result.notFound();
 					return;
 				}
-				
+
 				if (args != null) {
 					args[i] = loaded;
 				} else {
@@ -118,7 +118,10 @@ public class ParameterLoader {
 				}
 			}
 		}
-		flash.includeParameters(method, args);
+
+		if (args != null)
+			for (int index = 0; index < args.length; index++)
+				methodInfo.setParameter(index, args[index]);
 
 		stack.next();
 	}
@@ -133,7 +136,8 @@ public class ParameterLoader {
 		}
 
 		Converter<?> converter = converters.to(idProperty.getType().getJavaType());
-		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(), idProperty.getType());
+		checkArgument(converter != null, "Entity %s id type %s must have a converter", type.getSimpleName(),
+				idProperty.getType());
 
 		Serializable id = (Serializable) converter.convert(parameter, type);
 		return em.find(type, id);
@@ -156,7 +160,7 @@ public class ParameterLoader {
 	private <T> boolean hasSupertype(IdentifiableType<? super T> entity) {
 		return entity.getSupertype() != null;
 	}
-	
+
 	private boolean hasLoadAnnotation(Annotation[] annotation) {
 		return !isEmpty(Iterables.filter(asList(annotation), Load.class));
 	}
