@@ -53,15 +53,27 @@ public class EntityManagerFactoryCreator {
 	@Produces
 	public EntityManagerFactory getEntityManagerFactory() {
 		EntityManagerFactory factory;
+		
 		String persistenceUnit = environment.get("br.com.caelum.vraptor.jpa.persistenceunit", "default");
 		// Try create factory from persistence.xml
 		factory = Persistence.createEntityManagerFactory(persistenceUnit);
-		if(!factory.getProperties().containsKey("hibernate.connection.url")){
+		
+		// If factory is not valid, try create an connection based on propertiesOfJPAConnection
+		if(!factoryIsValid(factory)){
 			factory.close();
-			// Create a EntityManagerFactory based on the injected properties
 			factory = Persistence.createEntityManagerFactory("default", propertiesOfJPAConnection);
 		}
 		return factory;			
+	}
+	
+	/**
+	 * Checks whether the factory is valid through your params
+	 * 
+	 * @param factory to be analysed
+	 * @return true if is valid
+	 */
+	private boolean factoryIsValid(EntityManagerFactory factory){
+		return factory.getProperties().containsKey("hibernate.connection.url");
 	}
 
 	public void destroy(@Disposes EntityManagerFactory factory) {
