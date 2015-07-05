@@ -16,6 +16,8 @@
  */
 package br.com.caelum.vraptor.jpa;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Properties;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -26,6 +28,10 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
+import org.hibernate.SessionFactory;
+import org.hibernate.internal.SessionFactoryImpl;
+import org.hibernate.jpa.HibernateEntityManagerFactory;
+
 import br.com.caelum.vraptor.environment.Environment;
 
 /**
@@ -35,6 +41,12 @@ import br.com.caelum.vraptor.environment.Environment;
  * @author Otávio Garcia
  */
 public class EntityManagerFactoryCreator {
+	/*
+	 * Properties needed to create an EntityManagerFactory from persistence.xml
+	 */
+	private final String[] PROPERTY_NAMES = {"hibernate.connection.username", 
+											 "hibernate.connection.password", 
+											 "hibernate.connection.url"};
 	@Inject
 	private Environment environment;
 	@Inject
@@ -44,36 +56,49 @@ public class EntityManagerFactoryCreator {
 	/**
 	 * Produces EntityManagerFactory.  For default  is created an connect 
 	 * based on configurations of the persistence.xml. 
-	 * However, if database url property  is null in persistence.xml,  
-	 * the connection will created programmatically, overriding the default setting.
+	 * However, if the database properties are unset in persistence.xml,  
+	 * the connection will created programmatically by propertiesOfJPAConnection,
+	 * overriding the default settings.
 	 * 
 	 * @return the EntityManagerFactory that will create all Entity managers
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
 	 */
 	@ApplicationScoped
 	@Produces
-	public EntityManagerFactory getEntityManagerFactory() {
-		EntityManagerFactory factory;
-		
+	public EntityManagerFactory getEntityManagerFactory(){
+		EntityManagerFactory factory = null;
 		String persistenceUnit = environment.get("br.com.caelum.vraptor.jpa.persistenceunit", "default");
-		// Try create factory from persistence.xml
-		factory = Persistence.createEntityManagerFactory(persistenceUnit);
 		
-		// If factory is not valid, try create an connection based on propertiesOfJPAConnection
-		if(!factoryIsValid(factory)){
-			factory.close();
-			factory = Persistence.createEntityManagerFactory("default", propertiesOfJPAConnection);
+		// Try programatically if XML configuration is invalid
+		if(!propertiesOfJPAConnection.isEmpty() && !hasXMLConfiguration(persistenceUnit)) {
+			factory = Persistence.createEntityManagerFactory(persistenceUnit, propertiesOfJPAConnection);
+		} else {
+			factory = Persistence.createEntityManagerFactory(persistenceUnit);
 		}
 		return factory;			
 	}
 	
 	/**
-	 * Checks whether the factory is valid through your params
+	 * Checks if exist properties of persistence unit in persistence.xml
 	 * 
-	 * @param factory to be analysed
-	 * @return true if is valid
+	 * @param persistenceUnit to validate
+	 * @return true if settings exist, this not checks if are invalids
 	 */
-	private boolean factoryIsValid(EntityManagerFactory factory){
-		return factory.getProperties().containsKey("hibernate.connection.url");
+	private boolean hasXMLConfiguration(String persistenceUnit){
+		// Get configuration of persistence unit
+		EntityManagerFactory toValidate = Persistence.createEntityManagerFactory(persistenceUnit);
+		SessionFactory sessionFactory = ((HibernateEntityManagerFactory) toValidate).getSessionFactory();
+		Properties persistenceXMLProperties = ((SessionFactoryImpl) sessionFactory).getProperties();
+		toValidate.close();
+		// Check properties
+		for(String property : PROPERTY_NAMES){
+			// If a property is not contained, returns false
+			if(!persistenceXMLProperties.contains(property)){
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public void destroy(@Disposes EntityManagerFactory factory) {
