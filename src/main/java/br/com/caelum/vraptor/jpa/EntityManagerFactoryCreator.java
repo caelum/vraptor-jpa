@@ -28,10 +28,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
-import org.hibernate.SessionFactory;
-import org.hibernate.internal.SessionFactoryImpl;
-import org.hibernate.jpa.HibernateEntityManagerFactory;
-
 import br.com.caelum.vraptor.environment.Environment;
 
 /**
@@ -41,12 +37,6 @@ import br.com.caelum.vraptor.environment.Environment;
  * @author Otávio Garcia
  */
 public class EntityManagerFactoryCreator {
-	/*
-	 * Properties needed to create an EntityManagerFactory from persistence.xml
-	 */
-	private final String[] PROPERTY_NAMES = {"hibernate.connection.username", 
-											 "hibernate.connection.password", 
-											 "hibernate.connection.url"};
 	@Inject
 	private Environment environment;
 	@Inject
@@ -70,7 +60,6 @@ public class EntityManagerFactoryCreator {
 		EntityManagerFactory factory = null;
 		String persistenceUnit = environment.get("br.com.caelum.vraptor.jpa.persistenceunit", "default");
 		
-		// Try programatically if XML configuration is invalid
 		if(!propertiesOfJPAConnection.isEmpty() && !hasXMLConfiguration(persistenceUnit)) {
 			factory = Persistence.createEntityManagerFactory(persistenceUnit, propertiesOfJPAConnection);
 		} else {
@@ -86,19 +75,14 @@ public class EntityManagerFactoryCreator {
 	 * @return true if settings exist, this not checks if are invalids
 	 */
 	private boolean hasXMLConfiguration(String persistenceUnit){
-		// Get configuration of persistence unit
+		final String url = "hibernate.connection.url";
 		EntityManagerFactory toValidate = Persistence.createEntityManagerFactory(persistenceUnit);
-		SessionFactory sessionFactory = ((HibernateEntityManagerFactory) toValidate).getSessionFactory();
-		Properties persistenceXMLProperties = ((SessionFactoryImpl) sessionFactory).getProperties();
-		toValidate.close();
-		// Check properties
-		for(String property : PROPERTY_NAMES){
-			// If a property is not contained, returns false
-			if(!persistenceXMLProperties.contains(property)){
-				return false;
-			}
+		if(toValidate.getProperties().containsKey(url)){
+			return true;
+		}else{
+			System.err.println("Vraptor-JPA: Try create connection programmatically...");
+			return false;
 		}
-		return true;
 	}
 
 	public void destroy(@Disposes EntityManagerFactory factory) {
