@@ -16,6 +16,10 @@
  */
 package br.com.caelum.vraptor.jpa;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
@@ -33,15 +37,52 @@ import br.com.caelum.vraptor.environment.Environment;
  * @author Otávio Garcia
  */
 public class EntityManagerFactoryCreator {
-	
-	@Inject 
+	@Inject
 	private Environment environment;
+	@Inject
+	private Properties propertiesOfJPAConnection;
 
+	
+	/**
+	 * Produces EntityManagerFactory.  For default  is created an connect 
+	 * based on configurations of the persistence.xml. 
+	 * However, if the database properties are unset in persistence.xml,  
+	 * the connection will created programmatically by propertiesOfJPAConnection,
+	 * overriding the default settings.
+	 * 
+	 * @return the EntityManagerFactory that will create all Entity managers
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 */
 	@ApplicationScoped
 	@Produces
-	public EntityManagerFactory getEntityManagerFactory() {
+	public EntityManagerFactory getEntityManagerFactory(){
+		EntityManagerFactory factory = null;
 		String persistenceUnit = environment.get("br.com.caelum.vraptor.jpa.persistenceunit", "default");
-		return Persistence.createEntityManagerFactory(persistenceUnit);
+		
+		if(!propertiesOfJPAConnection.isEmpty() && !hasXMLConfiguration(persistenceUnit)) {
+			factory = Persistence.createEntityManagerFactory(persistenceUnit, propertiesOfJPAConnection);
+		} else {
+			factory = Persistence.createEntityManagerFactory(persistenceUnit);
+		}
+		return factory;			
+	}
+	
+	/**
+	 * Checks if exist properties of persistence unit in persistence.xml
+	 * 
+	 * @param persistenceUnit to validate
+	 * @return true if settings exist, this not checks if are invalids
+	 */
+	private boolean hasXMLConfiguration(String persistenceUnit){
+		final String url = "hibernate.connection.url";
+		EntityManagerFactory toValidate = Persistence.createEntityManagerFactory(persistenceUnit);
+		if(toValidate.getProperties().containsKey(url)){
+			return true;
+		}else{
+			System.err.println("Vraptor-JPA: Try create connection programmatically...");
+			return false;
+		}
 	}
 
 	public void destroy(@Disposes EntityManagerFactory factory) {
