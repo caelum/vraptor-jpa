@@ -17,6 +17,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<weld.version>2.1.2.Final</weld.version>
 	</properties>
 
 	<developers>
@@ -101,6 +102,20 @@
 			<artifactId>vraptor</artifactId>
 			<version>4.2.0-RC3</version>
 			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jboss.weld.servlet</groupId>
+			<artifactId>weld-servlet-core</artifactId>
+			<version>${weld.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jboss.weld</groupId>
+			<artifactId>weld-core-impl</artifactId>
+			<version>${weld.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
