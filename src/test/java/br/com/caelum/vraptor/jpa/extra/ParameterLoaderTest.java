@@ -1,11 +1,14 @@
 package br.com.caelum.vraptor.jpa.extra;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,10 +34,10 @@ import br.com.caelum.vraptor.controller.DefaultControllerMethod;
 import br.com.caelum.vraptor.converter.LongConverter;
 import br.com.caelum.vraptor.converter.StringConverter;
 import br.com.caelum.vraptor.core.Converters;
-import br.com.caelum.vraptor.events.ControllerFound;
+import br.com.caelum.vraptor.core.MethodInfo;
 import br.com.caelum.vraptor.http.Parameter;
 import br.com.caelum.vraptor.http.ParameterNameProvider;
-import br.com.caelum.vraptor.view.FlashScope;
+import br.com.caelum.vraptor.interceptor.SimpleInterceptorStack;
 
 public class ParameterLoaderTest {
 
@@ -43,15 +46,15 @@ public class ParameterLoaderTest {
 	private @Mock ParameterNameProvider provider;
 	private @Mock Result result;
 	private @Mock Converters converters;
-	private @Mock FlashScope flash;
+	private @Mock MethodInfo methodInfo;
 
 	private @Mock Metamodel metamodel;
 	private @Mock EntityType entityType;
 	private @Mock Type type;
 	private @Mock SingularAttribute attribute;
+	private @Mock SimpleInterceptorStack stack;
 	private @Mock MappedSuperclassType mappedSuperclassType;
 
-	private ParameterLoader parameterLoader;
 	private ControllerMethod method;
 	private ControllerMethod methodOtherIdName;
 	private ControllerMethod other;
@@ -65,7 +68,6 @@ public class ParameterLoaderTest {
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
-		parameterLoader = new ParameterLoader(em, request, provider, result, converters, flash);
 		method = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("method", Entity.class));
 		methodWithoutLoad = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodWithoutLoad"));
 		methodOtherIdName = DefaultControllerMethod.instanceFor(Resource.class, Resource.class.getMethod("methodOtherIdName", EntityOtherIdName.class));
@@ -85,6 +87,20 @@ public class ParameterLoaderTest {
 		when(attribute.getType()).thenReturn(type);
 	}
 
+	public ParameterLoader buildInterceptorUsing(ControllerMethod method) {
+		return new ParameterLoader(em, request, provider, result, converters, methodInfo, method);
+	}
+
+	@Test
+	public void shouldAcceptsIfHasLoadAnnotation() {
+		assertTrue(buildInterceptorUsing(method).containsLoadAnnotation());
+	}
+
+	@Test
+	public void shouldNotAcceptIfHasNoLoadAnnotation() {
+		assertFalse(buildInterceptorUsing(methodWithoutLoad).containsLoadAnnotation());
+	}
+
 	@Test
 	@SuppressWarnings({ "unchecked" })
 	public void shouldLoadEntityUsingId() throws Exception {
@@ -98,9 +114,10 @@ public class ParameterLoaderTest {
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
 
-		parameterLoader.load(new ControllerFound(method));
+		buildInterceptorUsing(method).intercept(stack);
 
 		verify(request).setAttribute("entity", expectedEntity);
+		verify(stack, times(1)).next();
 	}
 
 	@Test
@@ -115,9 +132,10 @@ public class ParameterLoaderTest {
 		when(attribute.getName()).thenReturn("otherIdName");
 		when(type.getJavaType()).thenReturn(Long.class);
 
-		parameterLoader.load(new ControllerFound(methodOtherIdName));
+		buildInterceptorUsing(methodOtherIdName).intercept(stack);
 
 		verify(request).setAttribute("entity", expectedEntity);
+		verify(stack, times(1)).next();
 	}
 
 	@Test
@@ -132,9 +150,10 @@ public class ParameterLoaderTest {
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(String.class);
 
-		parameterLoader.load(new ControllerFound(other));
+		buildInterceptorUsing(other).intercept(stack);
 
 		verify(request).setAttribute("entity", expectedEntity);
+		verify(stack, times(1)).next();
 	}
 
 	@Test
@@ -150,9 +169,10 @@ public class ParameterLoaderTest {
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
 
-		parameterLoader.load(new ControllerFound(methodMappedSuperClass));
+		buildInterceptorUsing(methodMappedSuperClass).intercept(stack);
 
 		verify(request).setAttribute("mappedSuperClass", expectedEntity);
+		verify(stack, times(1)).next();
 	}
 
 	@Test
@@ -169,9 +189,10 @@ public class ParameterLoaderTest {
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
 
-		parameterLoader.load(new ControllerFound(methodChild));
+		buildInterceptorUsing(methodChild).intercept(stack);
 
 		verify(request).setAttribute("child", expectedEntity);
+		verify(stack, times(1)).next();
 	}
 
 	@Test
@@ -188,9 +209,10 @@ public class ParameterLoaderTest {
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
 
-		parameterLoader.load(new ControllerFound(methodSon));
+		buildInterceptorUsing(methodSon).intercept(stack);
 
 		verify(request).setAttribute("son", expectedEntity);
+		verify(stack, times(1)).next();
 	}
 
 	@Test
@@ -207,13 +229,14 @@ public class ParameterLoaderTest {
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
 
-		parameterLoader.load(new ControllerFound(methodGrandSon));
+		buildInterceptorUsing(methodGrandSon).intercept(stack);
 
 		verify(request).setAttribute("grandSon", expectedEntity);
+		verify(stack, times(1)).next();
 	}
 
 	@Test
-	public void shouldOverrideFlashScopedArgsIfAny() throws Exception {
+	public void shouldOverrideMethodInfoArgsIfAny() throws Exception {
 		Parameter parameter = new Parameter(0, "entity", method.getMethod());
 		when(provider.parametersFor(method.getMethod())).thenReturn(new Parameter[]{parameter});
 		when(request.getParameter("entity.id")).thenReturn("123");
@@ -222,14 +245,15 @@ public class ParameterLoaderTest {
 		when(entityType.getDeclaredId(Long.class)).thenReturn(attribute);
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
-		when(flash.consumeParameters(method)).thenReturn(args);
+		when(methodInfo.getParametersValues()).thenReturn(args);
 		Entity expectedEntity = new Entity();
 		when(em.find(Entity.class, 123l)).thenReturn(expectedEntity);
 
-		parameterLoader.load(new ControllerFound(method));
+		buildInterceptorUsing(method).intercept(stack);
 
 		assertThat(args[0], is((Object) expectedEntity));
-		verify(flash).includeParameters(method, args);
+		verify(methodInfo).setParameter(0, args[0]);
+		verify(stack, times(1)).next();
 	}
 
 	@Test
@@ -241,10 +265,11 @@ public class ParameterLoaderTest {
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
 
-		parameterLoader.load(new ControllerFound(method));
+		buildInterceptorUsing(method).intercept(stack);
 
 		verify(request, never()).setAttribute(eq("entity"), any());
 		verify(result).notFound();
+		verify(stack, never()).next();
 	}
 
 	@Test
@@ -257,10 +282,11 @@ public class ParameterLoaderTest {
 		when(attribute.getName()).thenReturn("id");
 		when(type.getJavaType()).thenReturn(Long.class);
 
-		parameterLoader.load(new ControllerFound(method));
+		buildInterceptorUsing(method).intercept(stack);
 
 		verify(request, never()).setAttribute(eq("entity"), any());
 		verify(result).notFound();
+		verify(stack, never()).next();
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -271,8 +297,9 @@ public class ParameterLoaderTest {
 		when(entityType.getIdType()).thenReturn(null);
 		fail().when(request).setAttribute(eq("entity"), any());
 		fail().when(result).notFound();
+		fail().when(stack).next();
 
-		parameterLoader.load(new ControllerFound(noId));
+		buildInterceptorUsing(noId).intercept(stack);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -286,8 +313,9 @@ public class ParameterLoaderTest {
 		when(type.getJavaType()).thenReturn(Long.class);
 		fail().when(request).setAttribute(eq("entity"), any());
 		fail().when(result).notFound();
+		fail().when(stack).next();
 
-		parameterLoader.load(new ControllerFound(method));
+		buildInterceptorUsing(method).intercept(stack);
 	}
 
 
